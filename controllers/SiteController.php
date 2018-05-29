@@ -10,6 +10,9 @@ use yii\filters\VerbFilter;
 use app\models\LoginForm;
 use app\models\ContactForm;
 
+ 
+use app\components\elastic;
+
 class SiteController extends Controller
 {
     /**
@@ -61,7 +64,19 @@ class SiteController extends Controller
      */
     public function actionIndex()
     {
-        return $this->render('index');
+            
+        $elastic = new elastic(); 
+        
+        $index = "bank";
+        $fileds = [];
+        $page = [];
+        $order = [];
+        
+        $response = $elastic->search($index, $fileds, $page, $order);
+        
+        return  json_encode($response);
+        
+        //return $this->render('index');
     }
 
     /**

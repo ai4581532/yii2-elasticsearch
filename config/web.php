@@ -1,6 +1,8 @@
 <?php
 
 $params = require __DIR__ . '/params.php';
+ 
+
 $db = require __DIR__ . '/db.php';
 
 $config = [
@@ -42,7 +44,9 @@ $config = [
                 ],
             ],
         ],
+        
         'db' => $db,
+        
         /*
         'urlManager' => [
             'enablePrettyUrl' => true,
@@ -52,7 +56,10 @@ $config = [
         ],
         */
     ],
+    
     'params' => $params,
+ 
+    
 ];
 
 if (YII_ENV_DEV) {
