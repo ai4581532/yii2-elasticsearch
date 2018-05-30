@@ -6,9 +6,16 @@ use Yii;
 use Elasticsearch\ClientBuilder;
  
 
-class elastic {
+/**
+ * Elastic组件类
+ * 
+ * @author charley.wang
+ *
+ */
+class Elastic {
     
     private static $client;
+    
     
     public function __construct(){
         
@@ -17,6 +24,10 @@ class elastic {
         self::$client = ClientBuilder::fromConfig($esParam);
     }
     
+    /**
+     * 获取client
+     * @return \Elasticsearch\Client
+     */
     public function getClient(){
         return self::$client;        
     }
@@ -24,99 +35,312 @@ class elastic {
     /**
      * 创建索引      
      */
-    public function createIndex(){
+    public function createIndex($index,$properties,$type="_doc"){
+        $result = array("status"=>true,"message"=>"success","data"=>"");
+        
+        if(empty($properties)){
+            $properties =[
+                'name' => [
+                    'type' => 'string',
+                    "boost"=> 10,
+                    'analyzer' => 'standard'
+                ],
+                'desc' => [
+                    'type' => 'integer',
+                    'boost'=> 5,
+                    'analyzer' => 'standard'
+                ]
+            ];
+            
+        }
+        
+        $params = [
+            'index' => $index,
+            'body' => [
+//                 'settings' => [
+//                     'number_of_shards' => 3,
+//                     'number_of_replicas' => 3
+//                 ],
+                'mappings' => [
+                    $type => [
+                        'properties' => $properties
+                    ]
+                ]
+            ]
+        ];
+ 
+        try {
+            $response = $this->getClient()->indices()->create($params);
+            $result["data"] = $response;
+        } catch (\Exception $e) {
+            $result["status"]=false;
+            $result["message"]=$e->getMessage();
+        }
+        
+        return $result;
         
     }
     
     /**
      * 删除索引 
      */
-    public function deleteIndex(){
+    public function deleteIndex($index){
+        $result = array("status"=>true,"message"=>"success","data"=>"");
         
+        $params = ['index' => $index];
+        
+        try {
+            $response = $this->getClient()->indices()->delete($params);
+            $result["data"] = $response;
+        } catch (\Exception $e) {
+            $result["status"]=false;
+            $result["message"]=$e->getMessage();
+        }
+        
+        return $result;
     }
     
     /**
-     * 列出index
+     * 获取索引
+     * @return array
+     */
+    public function getIndex($index){
+        $result = array("status"=>true,"message"=>"success","data"=>"");
+        
+        $params = ['index' => $index];
+        
+        try {
+            $response = $this->getClient()->indices()->get($params);
+            $result["data"] = $response;
+        } catch (\Exception $e) {
+            $result["status"]=false;
+            $result["message"]=$e->getMessage();
+        }
+            
+        return $result;
+    }
+    
+    /**
+     * 获取索引列表
      */
     public function getIndexList(){
+        $result = array("status"=>true,"message"=>"success","data"=>"");
         
+        $params = ['index' => '*'];
+        
+        try {
+            $response = $this->getClient()->indices()->get($params);
+            
+            $result["data"] = $response;
+            
+        } catch (\Exception $e) {
+            $result["status"]=false;
+            $result["message"]=$e->getMessage();
+        }
+        
+        return $result;
     }
     
     /**
      * 创建文档 
      */
-    public function createDocument(){
+    public function createDocument($index,$body,$type="_doc",$id){
+        $result = array("status"=>true,"message"=>"success","data"=>"");
         
+        $params = [
+            'index' => $index,
+            'type' => $type,
+            'id' => $id,
+            'body' => $body
+        ];
+        
+        try {
+            
+            $response = $this->getClient()->index($params);
+            $result["data"] = $response;
+            
+        } catch (\Exception $e) {
+            $result["status"]=false;
+            $result["message"]=$e->getMessage();
+        }
+        
+        return $result;
     }
     
     /**
      * 更新文档 
      */
-    public function updateDocument(){
+    public function updateDocument($index,$body,$type="_doc",$id){
+        $result = array("status"=>true,"message"=>"success","data"=>"");
         
+        $params = [
+            'index' => $index,
+            'type' => $type,
+            'id' => $id,
+            'body' => [
+                'doc' => $body
+            ]
+        ];
+        
+        try {
+            
+            $response = $this->getClient()->update($params);
+            $result["data"] = $response;
+            
+        } catch (\Exception $e) {
+            $result["status"]=false;
+            $result["message"]=$e->getMessage();
+        }
+        
+        return $result;
     }
     
     /**
      * 删除文档 
      */
-    public function deleteDocument(){
+    public function deleteDocument($index,$id,$type="_doc"){
+        $result = array("status"=>true,"message"=>"success","data"=>"");
         
+        $params = [
+            'index' => $index,
+            'type' => $type,
+            'id' => $id
+        ];
+        
+        try {
+            $response = $this->getClient()->delete($params);
+            $result["data"] = $response;
+        } catch (\Exception $e) {
+            $result["status"]=false;
+            $result["message"]=$e->getMessage();
+        }
+        
+        return $result;
     }
     
     /**
-     * 普通搜索
-     * 
-     * 可指定indx
-     * 可分页
-     * 可排序
-     * 可指定返回字段
-     * 
-     * $fileds = array("account_number", "balance");
-     * $order = ["balance"=>["order"=>"desc"]];
-     *  
+     * 获取document
      */
-    public function search($index,$fileds,$page,$order,$type='_doc'){
+    public function getDocument($index,$id,$type="_doc"){
+        $result = array("status"=>true,"message"=>"success","data"=>"");
+        
+        $params = [
+            'index' => $index,
+            'type' => $type,
+            'id' => $id
+        ];
+        
+        try {
+            $response = $this->getClient()->get($params);
+            $result["data"] = $response;
+        } catch (\Exception $e) {
+            $result["status"]=false;
+            $result["message"]=$e->getMessage();
+        }
+        
+        return $result;
+    }
+    
+    /**
+     * 获取搜索body
+     * @param string $queryString 搜索词/语句
+     * @param array $queryFileds  搜索字段
+     * @param string $queryType 搜索类型
+     * @return NULL|array
+     */
+    public function getQueryBody($queryString,$queryFileds=array(),$queryType="simple_query_string"){
+        $query =[];
+        
+        if(empty($queryString)){
+            return null;
+        }
+        
+        if(empty($queryFileds)){
+            $queryFileds = ["name^5","desc"];
+        }
+        
+        switch ($queryType){
+            case 'multi_match':
+                $query = [
+                    "multi_match" => [
+                        "query" => $queryString,
+                        "fields" => $queryFileds
+                    ]
+                ];
+                
+                break;
+            case 'query_string':
+                $query = [
+                    "query_string" => [
+                        "query" => $queryString,
+                        "fields" => $queryFileds,
+                        //"analyzer" =>,
+                    ]
+                ];
+                
+                break;
+            default:
+                $query = [
+                    "simple_query_string"=>[
+                        "query" => $queryString,
+                        "fields" => $queryFileds,
+                        //"analyzer" =>,
+                    ]
+                ];
+                
+        }
+        
+        return $query;
+    }
+    
+
+    /**
+     * 搜索
+     * 
+     * @param array $queryBody 搜索主体参数
+     * @param string $index 索引名称
+     * @param string $type doc分组
+     * @param array $sourceFileds 返回搜索的源字段
+     * @param array $page 分页参数
+     * @param array $order 排序参数
+     * @return array
+     * 
+     * $sourceFileds = ["account_number", "balance"];
+     * $page = ["pageNum"=>0,"pageSize" =>10];
+     * $order = ["balance"=>["order"=>"desc"]];
+     * 
+     */
+    public function search($queryBody, $index, $type='_doc', $sourceFileds=array(), $page=array(), $order=array()){
+        
         $result = array("status"=>true,"message"=>"success","data"=>"");
         
         if(empty($index)){
             $result["status"]=false;
             $result["message"]="param index is null!";
-        }
-        
-        if(empty($fileds)){
-            $fileds = array();
+            return $result;
         }
         
         if(empty($page)){
             $pages["pageNum"] = 0;
             $pages["pageSize"] = 10;
         }
-        
-        if(empty($order)){
-            $order = array();
-        }
-        
+
         $params = [
             'index' => $index,
             'type' => $type,
             'body' => [
-                'query' => [
-                    'match' => [
-                        'firstname' => 'Price'
-                    ]
-                ],
+                'query' => $queryBody,
                 
-                "_source"=>$fileds,
+                "_source"=>$sourceFileds,
                 
-                "from"=>$pages["pageNum"]?$pages["pageNum"]:10,
+                "from"=>$pages["pageNum"],
                 
-                "size"=>$pages["pageSize"]?$pages["pageSize"]:10,
+                "size"=>$pages["pageSize"],
                 
                 'sort'=>$order
                 
             ]
         ];
-        
         
         try {
             
@@ -126,7 +350,7 @@ class elastic {
             
             $result["status"]=false;
             
-            $result["message"]="param index is null!";
+            $result["message"]=$e->getMessage();
             
         }
         
