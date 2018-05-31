@@ -35,21 +35,35 @@ class Elastic {
     /**
      * 创建索引      
      */
-    public function createIndex($index,$properties,$type="_doc"){
+    public function createIndex($index,$properties=array(),$type="_doc"){
         $result = array("status"=>true,"message"=>"success","data"=>"");
         
         if(empty($properties)){
             $properties =[
-                'name' => [
+                //entity_id app_name app_category_first_name  app_version app_language app_rating app_system app_current_score  app_introduction app_current_newfunction  app_free_limit 
+                
+                
+                'entity_id' => [
                     'type' => 'string',
-                    "boost"=> 10,
+                    "boost"=> 1,
                     'analyzer' => 'standard'
                 ],
-                'desc' => [
-                    'type' => 'integer',
-                    'boost'=> 5,
-                    'analyzer' => 'standard'
-                ]
+                'app_name' => [
+                    'type' => 'string',
+                    'boost'=> 10,
+                    'analyzer' => 'ik_max_word'
+                ],
+                'app_introduction' => [
+                    'type' => 'string',
+                    "boost"=> 8,
+                    'analyzer' => 'ik_max_word'
+                ],
+                'app_current_newfunction' => [
+                    'type' => 'string',
+                    'boost'=> 6,
+                    'analyzer' => 'ik_max_word'
+                ],
+ 
             ];
             
         }

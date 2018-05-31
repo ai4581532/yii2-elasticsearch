@@ -3,7 +3,9 @@ namespace app\controllers;
 
 use yii\web\Controller;
 
-use app\components\elastic;
+use app\components\Elastic;
+use app\models\AppIosFlat;
+use yii\data\Pagination;
 
 class ElasticController extends Controller{
     
@@ -11,19 +13,20 @@ class ElasticController extends Controller{
         
         $elastic = new Elastic();
         
-        $index = "tutuapp-ios";
-        $queryString = "doe";
+        $index = "tutuapp-ios-zh";
         
-        $queryBody = $elastic->getQueryBody($queryString);
-        $response = $elastic->search($queryBody, $index);
+//         $queryString = "doe";
         
-//         $response = $elastic->getIndex($index);
+//         $queryBody = $elastic->getQueryBody($queryString);
+//         $response = $elastic->search($queryBody, $index);
         
-        $index = "tutuapp-ios";
+        $response = $elastic->getIndex($index);
         
-        $body= ["name"=>"wang","desc"=>"chao ji wang"];
+//         $index = "tutuapp-ios";
         
-        $response = $elastic->createDocument($index, $body);
+//         $body= ["name"=>"wang","desc"=>"chao ji wang"];
+        
+        //$response = $elastic->createDocument($index, $body);
         
         $params['body'][] = [
             'index' => [
@@ -41,5 +44,32 @@ class ElasticController extends Controller{
         return  json_encode($response);
     }
     
+    public function actionBatchindexdata(){
+        try {
+   
+        
+            $query = AppIosFlat::find();
+            
+            $pagination = new Pagination([
+                'defaultPageSize' => 10,
+                'totalCount' => $query->count(),
+            ]);
+            
+            $apps = $query->orderBy('id')
+            ->offset($pagination->offset)
+            ->limit($pagination->limit)
+            ->all();
+            
+            $app = $apps[0];
+            
+            return json_encode($app->attributes);
+ 
+            
+        } catch (Exception $e) {
+            return $e->getMessage();
+        }
+        
+      
+    }
     
 }
