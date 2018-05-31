@@ -8,14 +8,14 @@ use app\components\elastic;
 class ElasticController extends Controller{
     
     public function actionIndex(){
+        
         $elastic = new Elastic();
         
-        $index = "*";
+        $index = "tutuapp-ios";
         $queryString = "doe";
         
         $queryBody = $elastic->getQueryBody($queryString);
-        
-//         $response = $elastic->search($queryBody, $index);
+        $response = $elastic->search($queryBody, $index);
         
 //         $response = $elastic->getIndex($index);
         
