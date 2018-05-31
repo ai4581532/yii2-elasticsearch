@@ -15,12 +15,9 @@ class ElasticController extends Controller{
         
         $index = "tutuapp-ios-zh";
         
-//         $queryString = "doe";
-        
-//         $queryBody = $elastic->getQueryBody($queryString);
-//         $response = $elastic->search($queryBody, $index);
-        
         $response = $elastic->getIndex($index);
+
+        $response = $elastic->createIndex($index);
         
 //         $index = "tutuapp-ios";
         
@@ -28,18 +25,20 @@ class ElasticController extends Controller{
         
         //$response = $elastic->createDocument($index, $body);
         
-        $params['body'][] = [
-            'index' => [
-                '_index' => 'my_index',
-                '_type' => 'my_type',
-            ]
-        ];
         
-        $params['body'][] = [
-            'my_field' => 'my_value',
-            'second_field' => 'some more values'
-        ];
+        return  json_encode($response);
+    }
+ 
+    
+    public function actionSearch(){
+        $elastic = new Elastic();
         
+        $index = "tutuapp-ios-zh";
+        
+        $queryString = "doe";
+        
+        $queryBody = $elastic->getQueryBody($queryString);
+        $response = $elastic->search($queryBody, $index);
         
         return  json_encode($response);
     }
