@@ -47,7 +47,7 @@ class ElasticController extends Controller{
             $query = AppIosFlat::find()->select(["id","entity_id","app_name","app_introduction"]);
 
             $pagination = new Pagination([
-                'defaultPageSize' => 10,
+                'defaultPageSize' => 5,
                 'totalCount' => $query->count(),
             ]);
 
@@ -76,8 +76,10 @@ class ElasticController extends Controller{
 //
 //                return  json_encode($response);
             //}
-
-            foreach ($apps as $index => $app){
+            
+            $params = array();
+            
+            foreach ($apps as $i => $app){
                 $params['body'][] = [
                     'index' => [
                         '_index' => $index,
@@ -95,9 +97,10 @@ class ElasticController extends Controller{
             }
 
             $response = $elastic->bulkDocument($params);
+            
             return  json_encode($response);
 
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
 
             return $e->getMessage();
 
