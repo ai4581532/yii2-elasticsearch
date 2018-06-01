@@ -1,0 +1,436 @@
+
+        <html xmlns:v="urn:schemas-microsoft-com:vml"
+        xmlns:o="urn:schemas-microsoft-com:office:office"
+        xmlns:w="urn:schemas-microsoft-com:office:word"
+        xmlns="http://www.w3.org/TR/REC-html40">
+        <head><meta http-equiv=Content-Type content="text/html;  
+        charset=utf-8">
+        <style type="text/css">
+            table  
+            {  
+                border-collapse: collapse;
+                border: none;  
+                width: 100%;  
+            }  
+            td  
+            {  
+                border: solid #CCC 1px;  
+            }  
+            .codestyle{
+                word-break: break-all;
+                background:silver;mso-highlight:silver;
+            }
+        </style>
+        <meta name=ProgId content=Word.Document>
+        <meta name=Generator content="Microsoft Word 11">
+        <meta name=Originator content="Microsoft Word 11">
+        <xml><w:WordDocument><w:View>Print</w:View></xml></head>
+        <body><h1>1、简要概述</h1><div style="margin-left:20px;"><p>Elasticsearch提供了一个分布式多用户能力的全文搜索引擎，基于RESTful web接口。 Elasticsearch是用Java开发的，并作为Apache许可条款下的开放源码发布，是当前流行的企业级搜索引擎。</p>
+<p>[官网：<a href="https://www.elastic.co](https://www.elastic.co">https://www.elastic.co](https://www.elastic.co</a> "官网：<a href="https://www.elastic.co&quot">https://www.elastic.co&quot</a>;)
+[GitHub：<a href="https://github.com/elastic/elasticsearch](https://github.com/elastic/elasticsearch">https://github.com/elastic/elasticsearch](https://github.com/elastic/elasticsearch</a> "GitHub：<a href="https://github.com/elastic/elasticsearch&quot">https://github.com/elastic/elasticsearch&quot</a>;)</p>
+<p>目前我们已经在测试服务器上部署了一个包含4个节点的elasticsearch集群，其中192.168.166.39服务器上的node-x节点为负载均衡节点，如下图：</p>
+<p><img src="http://doc.joyslink.com/Public/Uploads/2018-05-25/5b07b339293d4.png" alt="" /></p>
+<p>此为在192.168.166.39服务器上部署了数据分析和可视化工具[kibaba](<a href="http://doc.joyslink.com/index.php?s=/35&page_id=499">http://doc.joyslink.com/index.php?s=/35&page_id=499</a> "kibaba")，访问地址为<a href="http://192.168.166.39:5601/status">http://192.168.166.39:5601/status</a></p></div><h1>2、名词解释</h1><div style="margin-left:20px;"><p><strong>1. Node 与 Cluster</strong></p>
+<p>Elastic 本质上是一个分布式数据库，允许多台服务器协同工作，每台服务器可以运行多个 Elastic 实例。
+单个 Elastic 实例称为一个节点（node）。一组节点构成一个集群（cluster）。</p>
+<p><strong>2. Index</strong></p>
+<p>Elastic 会索引所有字段，经过处理后写入一个反向索引（Inverted Index）。查找数据的时候，直接查找该索引。
+所以，Elastic 数据管理的顶层单位就叫做 Index（索引）。它是单个数据库的同义词。每个 Index （即数据库）的名字必须是小写。</p>
+<p><strong>3. Document</strong></p>
+<p>Index 里面单条的记录称为 Document（文档）。许多条 Document 构成了一个 Index。
+Document 使用 JSON 格式表示，下面是一个例子。</p>
+<table width='100%' class='codestyle'><pre><code>{
+  &quot;user&quot;: &quot;张三&quot;,
+  &quot;title&quot;: &quot;工程师&quot;,
+  &quot;desc&quot;: &quot;数据库管理&quot;
+}</code></pre></table>
+<p>同一个 Index 里面的 Document，不要求有相同的结构（scheme），但是最好保持相同，这样有利于提高搜索效率。</p>
+<p><strong>4. Type</strong></p>
+<p>Document 可以分组，比如weather这个 Index 里面，可以按城市分组（北京和上海），也可以按气候分组（晴天和雨天）。这种分组就叫做 Type，它是虚拟的逻辑分组，用来过滤 Document。
+不同的 Type 应该有相似的结构（schema），举例来说，id字段不能在这个组是字符串，在另一个组是数值。这是与关系型数据库的表的一个区别。性质完全不同的数据（比如products和logs）应该存成两个 Index，而不是一个 Index 里面的两个 Type（虽然可以做到）。
+根据规划，Elastic 6.x 版只允许每个 Index 包含一个 Type，7.x 版将会彻底移除 Type。</p>
+<p><strong>5.Shards&Replicas</strong></p>
+<p>一个索引中可能存放非常多的数据，这些数据甚至有可能超越一个单节点机器的资源限制。例如一个索引中如果有十亿个文档的话将会占用多达1Tb的空间，而这些是无法从单个节点提供搜索请求的，因为这将十分缓慢。</p>
+<p>想要解决这个问题，elaticsearch提供了可以将你的索引分片的能力，这些分片成为切片。每当你创建一个索引的时候，你可以十分轻松的制定这个索引的分片个数。每个分片就是一个功能完整且独立的索引，当然，他们可以分布在集群的任意一个节点上。
+分片十分重要，主要原因有两个：</p>
+<table width='100%' class='codestyle'><pre><code>1 它允许你水平的分割你的内容卷
+
+2 它允许你在分片（可能在多个节点上）分布和并行的操作，从而提高整个集群的性能和吞吐量。</code></pre></table>
+<p>搜素请求分发的机制以及文档最终如何汇总到搜索请求完全由elaticsearch来进行管理，这对于你来说是透明的。</p>
+<p>在可能发生故障的网络/云环境中,尤其是故障随时可能发生，我们强烈的建议采用故障转移机制，防止分片或者节点脱机或者消失。为此，elaticsearch允许您将索引的分片的一个甚至多个复制到所谓的复制分片上去，我们也称之为副本。副本十分重要，主要原因有两个：</p>
+<table width='100%' class='codestyle'><pre><code>1 当主分片出现故障的时候，副本即可提供高可用的特性。因此，需要注意的是，复制分片分配的节点绝不会同原始的分片在同一个数据节点上。 
+
+2 它同样可以提升扩展搜索量/吞吐量，因为可以对所有的副本执行并行的搜索请求。</code></pre></table>
+<p>总而言之，每个索引可以分为多个数据分片。索引的复制分片也可以被设置为0，当然，这意味着没有数据分片。一旦复制，每个索引都将具有原始的数据分片以及副本。你可以在创建索引的时候指定副本的数量。当你创建索引后，你可随时修改副本数，但是分片数已经固定，无法修改。</p>
+<p>默认情况下，Elasticsearch中的每个索引都分配了5个主分片和1个副本，这意味着如果您的集群中至少有两个节点，则索引将具有5个主分片，另外5个复本分片（1个完整副本）。一共是10个数据分片。</p>
+<table width='100%' class='codestyle'><pre><code>NOTE 
+
+每一个搜索的数据分片都是一个Lucene索引，在一个Lucene索引所能拥有的最大文档数量为Integer.MAX_VALUE-128。当然，你可以采用_cat/shards api监视数据分片。</code></pre></table></div><h1>3、安装与启动</h1><div style="margin-left:20px;"><p><strong>一、安装步骤</strong></p>
+<p>ps:本示例为在centos6.5环境使用<strong>官方推荐</strong>的rpm方式安装，参考[官方文档](<a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/rpm.html">https://www.elastic.co/guide/en/elasticsearch/reference/current/rpm.html</a> "官方文档")</p>
+<p>1.安装jdk-1.8，Elasticsearch 需要java 8或更高版本</p>
+<p>1.1卸载自带openjdk，请根据实际情况替换对应的jdk版本名称
+1）检测原openjdk
+<code>java -version</code></p>
+<p><img src="http://doc.joyslink.com/Public/Uploads/2018-05-23/5b051e6ff1a68.png" alt="" /></p>
+<p>2) 进一步查看jdk信息，一般会获得如下信息
+<code>rpm -qa|grep java</code></p>
+<p><img src="http://doc.joyslink.com/Public/Uploads/2018-05-23/5b051b8f363af.png" alt="" /></p>
+<p>3）卸载openjdk
+<code>rpm -e --nodeps tzdata-java-2013g-1.el6.noarch</code>
+<code>rpm -e --nodeps java-1.7.0-openjdk-1.7.0.45-2.4.3.3.el6.x86_64</code>
+<code>rpm -e --nodeps java-1.6.0-openjdk-1.6.0.0-1.66.1.13.0.el6.x86_64</code></p>
+<p><img src="http://doc.joyslink.com/Public/Uploads/2018-05-23/5b051bbe16d94.png" alt="" /></p>
+<p>1.2安装oracle jdk-1.8,以下为使用rpm安装示例，实际安装时请替换对应的下载地址和文件名称</p>
+<p>1）下载rpm包
+<code>curl -O http://download.oracle.com/otn-pub/java/jdk/8u172-b11/a58eab1ec242421181065cdc37240b08/jdk-8u172-linux-x64.rpm?AuthParam=1527056817_65bc574b6261aaa4564dfb5039048153</code></p>
+<p><img src="http://doc.joyslink.com/Public/Uploads/2018-05-23/5b05176233b56.png" alt="" /></p>
+<p>2）安装rpm包
+<code>rpm -ivh jdk-8u172-linux-x64.rpm\?AuthParam\=1527056817_65bc574b6261aaa4564dfb5039048153</code></p>
+<p><img src="http://doc.joyslink.com/Public/Uploads/2018-05-23/5b051781365fb.png" alt="" /></p>
+<p>3）查看jdk信息
+<code>java -version</code></p>
+<p><img src="http://doc.joyslink.com/Public/Uploads/2018-05-23/5b0517b3ead53.png" alt="" /></p>
+<p>2.导入Elasticsearch PGP Key
+<code>rpm --import https://artifacts.elastic.co/GPG-KEY-elasticsearch</code></p>
+<p>3.下载并安装elasticsearch</p>
+<p><code>wget https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-6.2.4.rpm</code> 下载</p>
+<p><code>wget https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-6.2.4.rpm.sha512</code></p>
+<p><code>shasum -a 512 -c elasticsearch-6.2.4.rpm.sha512</code> 校验文件</p>
+<p><code>sudo rpm --install elasticsearch-6.2.4.rpm</code> 安装</p>
+<p><strong>二、启动elasticsearch</strong></p>
+<p>1.使用Sysv init方式启动，centos7以下使用这种方式
+1）配置开机启动
+<code>sudo chkconfig --add elasticsearch</code>
+2）启动服务
+<code>sudo -i service elasticsearch start</code>
+3）停止服务
+<code>sudo -i service elasticsearch stop</code></p>
+<p>ps:启动日志/var/log/elasticsearch</p>
+<p>2.使用systemd方式启动，centos7以上使用
+1）配置开机启动
+<code>sudo /bin/systemctl daemon-reload</code>
+<code>sudo /bin/systemctl enable elasticsearch.service</code></p>
+<p>2）启动服务
+<code>sudo systemctl start elasticsearch.service</code></p>
+<p>3）停止服务
+<code>sudo systemctl stop elasticsearch.service</code></p>
+<p>ps:启动日志/var/log/elasticsearch</p>
+<p>3.检查是否启动成功,返回以下信息即为成功
+<code>curl localhost:9200</code></p>
+<p><img src="http://doc.joyslink.com/Public/Uploads/2018-05-23/5b052858773e0.png" alt="" /></p></div><h1>4、文件目录与集群配置</h1><div style="margin-left:20px;"><p><strong>一、使用npm方式安装的文件目录</strong>
+<table cellpadding="4px" border="1"><colgroup><col class="col_1"><col class="col_2"><col class="col_3"><col class="col_4"></colgroup><thead><tr><th align="left" valign="top"> Type </th><th align="left" valign="top"> Description </th><th align="left" valign="top"> Default Location </th><th align="left" valign="top"> Setting</th></tr></thead><tbody><tr><td align="left" valign="top"><p><span class="strong strong"><strong>home</strong></span></p></td><td align="left" valign="top"><p>Elasticsearch home directory or <code class="literal">$ES_HOME</code></p></td><td align="left" valign="top"><p><code class="literal">/usr/share/elasticsearch</code></p></td><td align="left" valign="top"><p></p></td></tr><tr><td align="left" valign="top"><p><span class="strong strong"><strong>bin</strong></span></p></td><td align="left" valign="top"><p>Binary scripts including <code class="literal">elasticsearch</code> to start a node
+and <code class="literal">elasticsearch-plugin</code> to install plugins</p></td><td align="left" valign="top"><p><code class="literal">/usr/share/elasticsearch/bin</code></p></td><td align="left" valign="top"><p></p></td></tr><tr><td align="left" valign="top"><p><span class="strong strong"><strong>conf</strong></span></p></td><td align="left" valign="top"><p>Configuration files including <code class="literal">elasticsearch.yml</code></p></td><td align="left" valign="top"><p><code class="literal">/etc/elasticsearch</code></p></td><td align="left" valign="top"><p><code class="literal"><a class="link" href="settings.html#config-files-location" title="Config files locationedit">ES_PATH_CONF</a></code></p></td></tr><tr><td align="left" valign="top"><p><span class="strong strong"><strong>conf</strong></span></p></td><td align="left" valign="top"><p>Environment variables including heap size, file descriptors.</p></td><td align="left" valign="top"><p><code class="literal">/etc/sysconfig/elasticsearch</code></p></td><td align="left" valign="top"><p></p></td></tr><tr><td align="left" valign="top"><p><span class="strong strong"><strong>data</strong></span></p></td><td align="left" valign="top"><p>The location of the data files of each index / shard allocated
+on the node. Can hold multiple locations.</p></td><td align="left" valign="top"><p><code class="literal">/var/lib/elasticsearch</code></p></td><td align="left" valign="top"><p><code class="literal">path.data</code></p></td></tr><tr><td align="left" valign="top"><p><span class="strong strong"><strong>logs</strong></span></p></td><td align="left" valign="top"><p>Log files location.</p></td><td align="left" valign="top"><p><code class="literal">/var/log/elasticsearch</code></p></td><td align="left" valign="top"><p><code class="literal">path.logs</code></p></td></tr><tr><td align="left" valign="top"><p><span class="strong strong"><strong>plugins</strong></span></p></td><td align="left" valign="top"><p>Plugin files location. Each plugin will be contained in a subdirectory.</p></td><td align="left" valign="top"><p><code class="literal">/usr/share/elasticsearch/plugins</code></p></td><td align="left" valign="top"><p><code class="literal"></code></p></td></tr><tr><td align="left" valign="top"><p><span class="strong strong"><strong>repo</strong></span></p></td><td align="left" valign="top"><p>Shared file system repository locations. Can hold multiple locations. A file system repository can be placed in to any subdirectory of any directory specified here.</p></td><td align="left" valign="top"><p>Not configured</p></td><td align="left" valign="top"><p><code class="literal">path.repo</code></p></td></tr></tbody></table></p>
+<p><strong>二、集群配置</strong>
+<code>vi /etc/elasticsearch/elasticsearch.yml</code></p>
+<p>1.配置集群名称和节点名称
+<img src="http://doc.joyslink.com/Public/Uploads/2018-05-23/5b053c1e12393.png" alt="" /></p>
+<p>2.配置日志和数据文件路径
+<img src="http://doc.joyslink.com/Public/Uploads/2018-05-23/5b053699367f4.png" alt="" /></p>
+<p>3.配置节点网络和最小启动节点数</p>
+<p><img src="http://doc.joyslink.com/Public/Uploads/2018-05-23/5b0537434c601.png" alt="" /></p>
+<p>4.配置对外访问ip和端口，默认只能本地访问，默认端口为9200，设成0.0.0.0为让任何人都可以访问
+<img src="http://doc.joyslink.com/Public/Uploads/2018-05-24/5b06629d49fce.png" alt="" /></p>
+<p>ps:配置的时候key: value之间要有一个空格</p></div><h1>5、数据分析可视化-Kibana</h1><div style="margin-left:20px;"><p><strong>一、简介</strong></p>
+<p>Kibana是一个开源的分析和可视化平台，旨在与Elasticsearch合作。您可以使用Kibana来搜索，查看存储在Elasticsearch索引中的数据并与其进行交互。您可以轻松地执行高级数据分析，并在各种图表，表格和地图中可视化您的数据。</p>
+<p>Kibana可以很容易地理解大量的数据。其简单的基于浏览器的界面使您能够快速创建和共享动态仪表板，实时显示Elasticsearch查询的变化。</p>
+<p><strong>二、安装</strong>
+1.安装elastic pgp key
+<code>rpm --import https://artifacts.elastic.co/GPG-KEY-elasticsearch</code>
+2.手动从rpm安装,保持kibana版本和elasticsearch版本一致
+wget <a href="https://artifacts.elastic.co/downloads/kibana/kibana-6.2.4-x86_64.rpm">https://artifacts.elastic.co/downloads/kibana/kibana-6.2.4-x86_64.rpm</a>
+shasum -a 512 kibana-6.2.4-x86_64.rpm
+sudo rpm --install kibana-6.2.4-x86_64.rpm</p>
+<p><strong>三、启动</strong>
+1.使用sysv init 方式启动，centos7以下使用这种</p>
+<p>1.1设置开机启动
+<code>sudo -i chkconfig --add kibana</code></p>
+<p>1.2启动服务
+<code>sudo -i service kibana start</code></p>
+<p>1.3停止服务
+<code>sudo -i service kibana stop</code></p>
+<p>2.使用systemd方式启动，centos7及以上使用这种</p>
+<p>2.1设置开机启动
+<code>sudo /bin/systemctl daemon-reload</code>
+<code>sudo /bin/systemctl enable kibana.service</code></p>
+<p>2.2启动服务
+<code>sudo systemctl start kibana.service</code></p>
+<p>2.3停止服务
+<code>sudo systemctl stop kibana.service</code></p>
+<p><strong>四、安装目录</strong>
+<table cellpadding="4px" border="1"><colgroup><col class="col_1"><col class="col_2"><col class="col_3"><col class="col_4"></colgroup><thead><tr><th align="left" valign="top"> Type </th><th align="left" valign="top"> Description </th><th align="left" valign="top"> Default Location </th><th align="left" valign="top"> Setting</th></tr></thead><tbody><tr><td align="left" valign="top"><p><span class="strong strong"><strong>home</strong></span></p></td><td align="left" valign="top"><p>Kibana home directory or <code class="literal">$KIBANA_HOME</code></p></td><td align="left" valign="top"><p><code class="literal">/usr/share/kibana</code></p></td><td align="left" valign="top"><p></p></td></tr><tr><td align="left" valign="top"><p><span class="strong strong"><strong>bin</strong></span></p></td><td align="left" valign="top"><p>Binary scripts including <code class="literal">kibana</code> to start the Kibana server
+and <code class="literal">kibana-plugin</code> to install plugins</p></td><td align="left" valign="top"><p><code class="literal">/usr/share/kibana/bin</code></p></td><td align="left" valign="top"><p></p></td></tr><tr><td align="left" valign="top"><p><span class="strong strong"><strong>config</strong></span></p></td><td align="left" valign="top"><p>Configuration files including <code class="literal">kibana.yml</code></p></td><td align="left" valign="top"><p><code class="literal">/etc/kibana</code></p></td><td align="left" valign="top"><p></p></td></tr><tr><td align="left" valign="top"><p><span class="strong strong"><strong>data</strong></span></p></td><td align="left" valign="top"><p>The location of the data files written to disk by Kibana and its plugins</p></td><td align="left" valign="top"><p><code class="literal">/var/lib/kibana</code></p></td><td align="left" valign="top"><p><code class="literal">path.data</code></p></td></tr><tr><td align="left" valign="top"><p><span class="strong strong"><strong>optimize</strong></span></p></td><td align="left" valign="top"><p>Transpiled source code. Certain administrative actions (e.g. plugin install)
+result in the source code being retranspiled on the fly.</p></td><td align="left" valign="top"><p><code class="literal">/usr/share/kibana/optimize</code></p></td><td align="left" valign="top"><p></p></td></tr><tr><td align="left" valign="top"><p><span class="strong strong"><strong>plugins</strong></span></p></td><td align="left" valign="top"><p>Plugin files location. Each plugin will be contained in a subdirectory.</p></td><td align="left" valign="top"><p><code class="literal">/usr/share/kibana/plugins</code></p></td><td align="left" valign="top"><p></p></td></tr></tbody></table></p>
+<p><strong>五、配置</strong></p>
+<p><code>vi /etc/kibana/kibana.yml</code></p>
+<p>1.配置kibana端口和可访问的ip,默认5601端口，配置0.0.0.0表示所有人都能访问</p>
+<p><img src="http://doc.joyslink.com/Public/Uploads/2018-05-25/5b07a5ab1f7c0.png" alt="" /></p>
+<p>2.配置服务名称和链接elasticsearch的url,server.name默认为host name，这里我们指定</p>
+<p><img src="http://doc.joyslink.com/Public/Uploads/2018-05-25/5b07a74d23342.png" alt="" /></p>
+<p>3.访问kibana服务：<a href="http://YOURDOMAIN.com:5601/status">http://YOURDOMAIN.com:5601/status</a>， 状态为green则ok，如下图</p>
+<p><img src="http://doc.joyslink.com/Public/Uploads/2018-05-25/5b07a9f921f4e.png" alt="" /></p>
+<p>4.配置负载均衡elasticsearch节点</p>
+<table width='100%' class='codestyle'><pre><code>如果您的弹性搜索集群中有多个节点，那么在节点间分发Kibana请求的最简单方法就是在与Kibana相同的机器上运行一个弹性搜索。弹性搜索只协调节点本质上是集群的一部分智能负载平衡器。他们处理传入的HTTP请求，根据需要将操作重定向到集群中的其他节点，并收集并返回结果。</code></pre></table>
+<p>4.1 在与Kibana的同一台机器上安装elasticsearch，参考elasticsearch安装文档</p>
+<p>4.2 将节点配置为仅协调的节点。在elasticsearch.yml,设置node.data, node.master and node.ingest为false</p>
+<h1>3. You want this node to be neither master nor data node nor ingest node, but</h1>
+<table width='100%' class='codestyle'><pre><code>#    to act as a &quot;search load balancer&quot; (fetching data from nodes,
+#    aggregating results, etc.)
+#
+node.master: false
+node.data: false
+node.ingest: false</code></pre></table>
+<p>4.3 配置客户端节点加入弹性搜索集群。在elasticsearch.yml，将cluster.name设置为集群的名称</p>
+<table width='100%' class='codestyle'><pre><code>cluster.name: &quot;my_cluster&quot;</code></pre></table>
+<p>4.4 配置传输网络和http, transport.host和transport.tcp.port为集群内部成员传输所用，network.host为kinaba连接和外部连接所用，这里我们设置transport.host为本机ip192.168.166.39</p>
+<table width='100%' class='codestyle'><pre><code>network.host: localhost
+http.port: 9200
+# by default transport.host refers to network.host
+transport.host: 192.168.166.39
+transport.tcp.port: 9300</code></pre></table>
+<p>4.5 配置集群成员的ip,在elasticsearch.yml中进行如下配置</p>
+<table width='100%' class='codestyle'><pre><code># --------------------------------- Discovery ----------------------------------
+#
+# Pass an initial list of hosts to perform discovery when new node is started:
+# The default list of hosts is [&quot;127.0.0.1&quot;, &quot;[::1]&quot;]
+#
+discovery.zen.ping.unicast.hosts: [&quot;127.0.0.1&quot;,&quot;192.168.182.128&quot;, &quot;192.168.182.129&quot;,&quot;192.168.166.32&quot;]</code></pre></table>
+<p>4.6 确保Kibana被配置为指向本地客户端节点。在kibana.yml中,elasticsearch.url应该设置为localhost:9200</p>
+<p><strong>六、简单使用教程</strong></p></div><h1>6、插件管理</h1><div style="margin-left:20px;"><p>一、常用命令，在es安装目录下使用
+1.列出插件列表
+<code>sudo bin/elasticsearch-plugin list</code></p>
+<p>2.安装插件
+<code>sudo bin/elasticsearch-plugin install [url]</code></p>
+<p>插件版本和es版本一致</p>
+<p>3.移除插件
+<code>sudo bin/elasticsearch-plugin remove [pluginname]</code></p>
+<p>移除插件后需重启所有节点</p>
+<p>4.更新插件
+<code>sudo bin/elasticsearch-plugin remove [pluginname]</code></p>
+<p><code>sudo bin/elasticsearch-plugin install [pluginname]</code></p>
+<p>注意插件版本和es版本一致，更新es后请更新对应相关插件</p>
+<p>二、中文分词插件</p>
+<p>1.ik分词</p>
+<p>[github地址：<a href="https://github.com/medcl/elasticsearch-analysis-ik/](https://github.com/medcl/elasticsearch-analysis-ik/">https://github.com/medcl/elasticsearch-analysis-ik/](https://github.com/medcl/elasticsearch-analysis-ik/</a> "github地址：<a href="https://github.com/medcl/elasticsearch-analysis-ik/&quot">https://github.com/medcl/elasticsearch-analysis-ik/&quot</a>;)</p>
+<p>安装命令：</p>
+<table width='100%' class='codestyle'><pre><code>./bin/elasticsearch-plugin install https://github.com/medcl/elasticsearch-analysis-ik/releases/download/v6.2.4/elasticsearch-analysis-ik-6.2.4.zip</code></pre></table></div><h1>7、yii2集成elasticsearch</h1><div style="margin-left:20px;"><p>[项目示例github地址：<a href="https://github.com/ai4581532/yii2-elasticsearch.git](https://github.com/ai4581532/yii2-elasticsearch.git">https://github.com/ai4581532/yii2-elasticsearch.git](https://github.com/ai4581532/yii2-elasticsearch.git</a> "项目示例github地址：<a href="https://github.com/ai4581532/yii2-elasticsearch.git&quot">https://github.com/ai4581532/yii2-elasticsearch.git&quot</a>;)</p>
+<p>ps:此处不再赘述yii2和composer安装使用教程，详情请参考相关文档</p>
+<p>[yii官网：<a href="https://www.yiiframework.com/](https://www.yiiframework.com/">https://www.yiiframework.com/](https://www.yiiframework.com/</a> "yii官网：<a href="https://www.yiiframework.com/&quot">https://www.yiiframework.com/&quot</a>;)
+[composer中文网：<a href="https://www.phpcomposer.com/](https://www.phpcomposer.com/">https://www.phpcomposer.com/](https://www.phpcomposer.com/</a> "composer中文网：<a href="https://www.phpcomposer.com/&quot">https://www.phpcomposer.com/&quot</a>;)</p>
+<p>1.在yii2项目composer.json文件中引入 elasticsearch-php：</p>
+<pre><code class="language-bash">{
+    &quot;require&quot;: {
+        &quot;elasticsearch/elasticsearch&quot;: &quot;~6.0&quot;
+    }
+}</code></pre></table>
+<p>2.下载[Elastic助手类](<a href="https://github.com/ai4581532/yii2-elasticsearch/blob/master/components/elastic.php">https://github.com/ai4581532/yii2-elasticsearch/blob/master/components/elastic.php</a> "Elastic助手类")放到项目components下,此类封装了基础主要的elasticsearch api，后续将进行完善
+<img src="http://doc.joyslink.com/Public/Uploads/2018-05-30/5b0e83a9dcbc7.png" alt="" /></p>
+<p>3.在项目params.php配置文件中配置elaticsearch集群连接信息
+<img src="http://doc.joyslink.com/Public/Uploads/2018-05-30/5b0e841d99fc4.png" alt="" /></p>
+<p>4.在业务处使用elastic，以下是搜索示例
+<img src="http://doc.joyslink.com/Public/Uploads/2018-05-30/5b0e8519d59d5.png" alt="" /></p></div><h1>8、API示例</h1><div style="margin-left:20px;"><p><strong>note:</strong>
+elasticsearch api以restful风格编写，其形式表现为<code>&lt;REST Verb&gt; /&lt;Index&gt;/&lt;Type&gt;/&lt;ID&gt;</code>，以下命令可以在[kibana控制台](<a href="http://192.168.166.39:5601/app/kibana#/dev_tools/console">http://192.168.166.39:5601/app/kibana#/dev_tools/console</a> "kibana控制台")中直接使用。</p>
+<p>1.列出index
+<code>GET /_cat/indices?v</code></p>
+<p><img src="http://doc.joyslink.com/Public/Uploads/2018-05-29/5b0d0eb9bdfdc.png" alt="" /></p>
+<p>2.创建index
+<code>PUT /tutuapp-ios</code></p>
+<p><img src="http://doc.joyslink.com/Public/Uploads/2018-05-29/5b0d0f21d0bd2.png" alt="" /></p>
+<p>3.删除index
+<code>DELETE /customer</code></p>
+<p>4.创建document</p>
+<pre><code class="language-bash">PUT /tutuapp-ios/_doc/1?pretty
+{
+  &quot;name&quot;: &quot;John Doe&quot;,
+  &quot;desc&quot;: &quot;John Doe create app&quot;
+}</code></pre></table>
+<p>ps:pretty参数可以使返回响应pretty</p>
+<p><img src="http://doc.joyslink.com/Public/Uploads/2018-05-29/5b0d10699a5d8.png" alt="" /></p>
+<p>5.更新document</p>
+<pre><code class="language-bash">POST /tutuapp-ios/_doc/1/_update?pretty
+{
+  &quot;doc&quot;: { &quot;name&quot;: &quot;Jane Doe&quot;, &quot;desc&quot;: &quot;hi Jane Doe&quot; }
+}</code></pre></table>
+<p>6.删除document
+<code>DELETE /tutuapp-ios/_doc/1?pretty</code></p>
+<p>7.批量操作</p>
+<pre><code class="language-bash">POST /tutuapp-ios/_doc/_bulk?pretty
+{&quot;index&quot;:{&quot;_id&quot;:&quot;1&quot;}}
+{&quot;name&quot;: &quot;John Doe&quot; }
+{&quot;index&quot;:{&quot;_id&quot;:&quot;2&quot;}}
+{&quot;name&quot;: &quot;Jane Doe&quot; }</code></pre></table>
+<p>8.简单搜索</p>
+<pre><code class="language-bash">GET /tutuapp-ios/_search
+{
+  &quot;query&quot;: { &quot;match_all&quot;: {} }
+}</code></pre></table>
+<p>9.搜索所有索引</p>
+<pre><code class="language-bash">GET /_search
+{
+  &quot;query&quot;: { &quot;match_all&quot;: {} }
+}</code></pre></table>
+<p>10.给字段加权重</p>
+<pre><code class="language-bash">GET /_search
+{
+    &quot;query&quot;: {
+        &quot;query_string&quot; : {
+            &quot;fields&quot; : [&quot;name^5&quot;,&quot;desc&quot;],
+            &quot;query&quot; : &quot;Doe&quot;
+        }
+    }
+}</code></pre></table>
+<p>name字段的权重为desc的5倍</p>
+<p>11.分页搜索</p>
+<pre><code class="language-bash">GET /bank/_search
+{
+  &quot;query&quot;: { &quot;match_all&quot;: {} },
+  &quot;from&quot;: 10,
+  &quot;size&quot;: 10
+}</code></pre></table>
+<p>12.排序搜索</p>
+<pre><code class="language-bash">GET /bank/_search
+{
+  &quot;query&quot;: { &quot;match_all&quot;: {} },
+  &quot;sort&quot;: { &quot;balance&quot;: { &quot;order&quot;: &quot;desc&quot; } }
+}</code></pre></table>
+<p>13.指定返回的字段</p>
+<pre><code class="language-bash">GET /_search
+{
+  &quot;query&quot;: { &quot;match_all&quot;: {} },
+  &quot;_source&quot;: [&quot;account_number&quot;, &quot;balance&quot;]
+}</code></pre></table>
+<p>指定返回account_number和balance字段</p>
+<p>14.过滤搜索结果</p>
+<pre><code class="language-bash">GET /bank/_search
+{
+  &quot;query&quot;: {
+    &quot;bool&quot;: {
+      &quot;must&quot;: { &quot;match_all&quot;: {} },
+      &quot;filter&quot;: {
+        &quot;range&quot;: {
+          &quot;balance&quot;: {
+            &quot;gte&quot;: 20000,
+            &quot;lte&quot;: 30000
+          }
+        }
+      }
+    }
+  }
+}</code></pre></table>
+<p>过滤balance在20000和30000之间的</p>
+<p>15.聚合搜索</p>
+<pre><code class="language-bash">GET /bank/_search
+{
+  &quot;size&quot;: 0,
+  &quot;aggs&quot;: {
+    &quot;group_by_state&quot;: {
+      &quot;terms&quot;: {
+        &quot;field&quot;: &quot;state.keyword&quot;,
+        &quot;order&quot;: {
+          &quot;average_balance&quot;: &quot;desc&quot;
+        }
+      },
+      &quot;aggs&quot;: {
+        &quot;average_balance&quot;: {
+          &quot;avg&quot;: {
+            &quot;field&quot;: &quot;balance&quot;
+          }
+        }
+      }
+    }
+  }
+}</code></pre></table></div><h1>9、FAQ</h1><div style="margin-left:20px;"><p>问题一：unable to install syscall filter</p>
+<pre><code class="language-bash">[2018-05-24T14:12:26,599][WARN ][o.e.b.JNANatives         ] unable to install syscall filter: 
+java.lang.UnsupportedOperationException: seccomp unavailable: requires kernel 3.5+ with CONFIG_SECCOMP and CONFIG_SECCOMP_FILTER compiled in
+        at org.elasticsearch.bootstrap.SystemCallFilter.linuxImpl(SystemCallFilter.java:328) ~[elasticsearch-6.2.4.jar:6.2.4]
+        at org.elasticsearch.bootstrap.SystemCallFilter.init(SystemCallFilter.java:616) ~[elasticsearch-6.2.4.jar:6.2.4]
+        at org.elasticsearch.bootstrap.JNANatives.tryInstallSystemCallFilter(JNANatives.java:258) [elasticsearch-6.2.4.jar:6.2.4]
+        at org.elasticsearch.bootstrap.Natives.tryInstallSystemCallFilter(Natives.java:113) [elasticsearch-6.2.4.jar:6.2.4]
+        at org.elasticsearch.bootstrap.Bootstrap.initializeNatives(Bootstrap.java:110) [elasticsearch-6.2.4.jar:6.2.4]
+        at org.elasticsearch.bootstrap.Bootstrap.setup(Bootstrap.java:172) [elasticsearch-6.2.4.jar:6.2.4]
+        at org.elasticsearch.bootstrap.Bootstrap.init(Bootstrap.java:323) [elasticsearch-6.2.4.jar:6.2.4]
+        at org.elasticsearch.bootstrap.Elasticsearch.init(Elasticsearch.java:121) [elasticsearch-6.2.4.jar:6.2.4]
+        at org.elasticsearch.bootstrap.Elasticsearch.execute(Elasticsearch.java:112) [elasticsearch-6.2.4.jar:6.2.4]
+        at org.elasticsearch.cli.EnvironmentAwareCommand.execute(EnvironmentAwareCommand.java:86) [elasticsearch-6.2.4.jar:6.2.4]
+        at org.elasticsearch.cli.Command.mainWithoutErrorHandling(Command.java:124) [elasticsearch-cli-6.2.4.jar:6.2.4]
+        at org.elasticsearch.cli.Command.main(Command.java:90) [elasticsearch-cli-6.2.4.jar:6.2.4]
+        at org.elasticsearch.bootstrap.Elasticsearch.main(Elasticsearch.java:92) [elasticsearch-6.2.4.jar:6.2.4]
+        at org.elasticsearch.bootstrap.Elasticsearch.main(Elasticsearch.java:85) [elasticsearch-6.2.4.jar:6.2.4]</code></pre></table>
+<p>原因：报了一大串错误，大家不必惊慌，其实只是一个警告，主要是因为你Linux版本过低造成的。</p>
+<p>解决方案：
+1、重新安装新版本的Linux系统
+2、警告不影响使用，可以忽略</p>
+<p>问题二：</p>
+<p>ERROR: bootstrap checks failed</p>
+<p>max file descriptors [4096] for elasticsearch process likely too low, increase to at least [65536]</p>
+<p>原因：无法创建本地文件问题,用户最大可创建文件数太小</p>
+<p>解决方案：
+切换到root用户，编辑limits.conf配置文件， 添加类似如下内容：</p>
+<p>vi /etc/security/limits.conf</p>
+<p>添加如下内容:</p>
+<ul>
+<li>
+<p>soft nofile 65536</p>
+</li>
+<li>
+<p>hard nofile 131072</p>
+</li>
+<li>
+<p>soft nproc 2048</p>
+</li>
+<li>hard nproc 4096
+备注：* 代表Linux所有用户名称（比如 hadoop）</li>
+</ul>
+<p>保存、退出、重新登录才可生效</p>
+<p>问题三：
+max number of threads [1024] for user [es] likely too low, increase to at least [2048]
+原因：无法创建本地线程问题,用户最大可创建线程数太小
+解决方案：切换到root用户，进入limits.d目录下，修改90-nproc.conf 配置文件。</p>
+<p>vi /etc/security/limits.d/90-nproc.conf</p>
+<p>找到如下内容：</p>
+<p><code>* soft nproc 1024</code></p>
+<p>修改为</p>
+<p><code>* soft nproc 2048</code></p>
+<p>问题四：
+max virtual memory areas vm.max_map_count [65530] likely too low, increase to at least [262144]
+原因：最大虚拟内存太小
+解决方案：切换到root用户下，修改配置文件sysctl.conf</p>
+<p>vi /etc/sysctl.conf</p>
+<p>添加下面配置：</p>
+<p>vm.max_map_count=655360</p>
+<p>并执行命令：</p>
+<p>sysctl -p</p>
+<p>然后重新启动elasticsearch，即可启动成功。</p>
+<p>问题五：
+ElasticSearch启动找不到主机或路由
+原因：ElasticSearch 单播配置有问题
+解决方案：
+检查ElasticSearch中的配置文件
+vi  config/elasticsearch.yml
+找到如下配置：</p>
+<p>discovery.zen.ping.unicast.hosts:["192.168.<strong>.</strong>:9300","192.168.<strong>.</strong>:9300"]
+一般情况下，是这里配置有问题，注意书写格式</p>
+<p>问题六：
+org.elasticsearch.transport.RemoteTransportException: Failed to deserialize exception response from stream</p>
+<p>原因:ElasticSearch节点之间的jdk版本不一致</p>
+<p>解决方案：ElasticSearch集群统一jdk环境</p>
+<p>问题七：
+Unsupported major.minor version 52.0</p>
+<p>原因：jdk版本问题太低
+解决方案：更换jdk版本，ElasticSearch5.0.0支持jdk1.8.0</p>
+<p>问题八：
+bin/elasticsearch-plugin install license
+ERROR: Unknown plugin license</p>
+<p>原因：ElasticSearch5.0.0以后插件命令已经改变
+解决方案：使用最新命令安装所有插件
+bin/elasticsearch-plugin install x-pack</p>
+<p>问题九：
+报错：
+ERROR: bootstrap checks failed
+system call filters failed to install; check the logs and fix your configuration or disable system call filters at your own risk
+原因：
+这是在因为Centos6不支持SecComp，而ES5.6.4默认bootstrap.system_call_filter为true进行检测，所以导致检测失败，失败后直接导致ES不能启动。
+解决：
+在elasticsearch.yml中配置bootstrap.system_call_filter为false，注意要在Memory下面:
+bootstrap.memory_lock: false
+bootstrap.system_call_filter: false</p></div></body></html>
