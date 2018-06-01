@@ -41,25 +41,24 @@ class Elastic {
         if(empty($properties)){
             $properties =[
                 //entity_id app_name app_category_first_name  app_version app_language app_rating app_system app_current_score  app_introduction app_current_newfunction  app_free_limit 
-                
-                
+
                 'entity_id' => [
-                    'type' => 'string',
+                    'type' => 'integer',
                     "boost"=> 1,
-                    'analyzer' => 'standard'
+                    //'analyzer' => 'standard'
                 ],
                 'app_name' => [
-                    'type' => 'string',
+                    'type' => 'text',
                     'boost'=> 10,
                     'analyzer' => 'ik_max_word'
                 ],
                 'app_introduction' => [
-                    'type' => 'string',
+                    'type' => 'text',
                     "boost"=> 8,
                     'analyzer' => 'ik_max_word'
                 ],
                 'app_current_newfunction' => [
-                    'type' => 'string',
+                    'type' => 'text',
                     'boost'=> 6,
                     'analyzer' => 'ik_max_word'
                 ],
@@ -154,11 +153,16 @@ class Elastic {
         
         return $result;
     }
-    
+
     /**
-     * 创建文档 
+     * 创建文档
+     * @param $index
+     * @param $id
+     * @param array $body
+     * @param string $type
+     * @return array
      */
-    public function createDocument($index,$body,$type="_doc",$id){
+    public function createDocument($index, $id, $body, $type = "_doc"){
         $result = array("status"=>true,"message"=>"success","data"=>"");
         
         $params = [
@@ -174,17 +178,24 @@ class Elastic {
             $result["data"] = $response;
             
         } catch (\Exception $e) {
+
             $result["status"]=false;
             $result["message"]=$e->getMessage();
+
         }
         
         return $result;
     }
-    
+
     /**
-     * 更新文档 
+     * 更新文档
+     * @param $index
+     * @param $id
+     * @param $body
+     * @param string $type
+     * @return array
      */
-    public function updateDocument($index,$body,$type="_doc",$id){
+    public function updateDocument($index, $id, $body, $type = "_doc"){
         $result = array("status"=>true,"message"=>"success","data"=>"");
         
         $params = [
@@ -231,7 +242,7 @@ class Elastic {
         
         return $result;
     }
-    
+
     /**
      * 获取document
      */
@@ -254,7 +265,22 @@ class Elastic {
         
         return $result;
     }
-    
+
+    public function bulkDocument($params){
+        $result = array("status"=>true,"message"=>"success","data"=>"");
+
+        try {
+            $response = $this->getClient()->bulk($params);
+            $result["data"] = $response;
+        } catch (\Exception $e) {
+            $result["status"]=false;
+            $result["message"]=$e->getMessage();
+        }
+
+        return $result;
+
+    }
+
     /**
      * 获取搜索body
      * @param string $queryString 搜索词/语句
@@ -270,7 +296,9 @@ class Elastic {
         }
         
         if(empty($queryFileds)){
-            $queryFileds = ["name^5","desc"];
+            $queryFileds = ["app_name","app_introduction","app_current_newfunction"];
+
+            //entity_id app_name app_category_first_name  app_version app_language app_rating app_system app_current_score  app_introduction app_current_newfunction  app_free_limit
         }
         
         switch ($queryType){
