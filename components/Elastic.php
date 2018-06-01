@@ -477,7 +477,7 @@ class Elastic {
         
     }
     
-    public function batchIndexData($page=0){
+    public function batchIndexData($page=0,$pageSize=3){
         
         $filedMap = [
             "id"=>"id",
@@ -494,7 +494,7 @@ class Elastic {
         
         $pagination = new Pagination([
             'page' => $page,
-            'defaultPageSize' => 5,
+            'defaultPageSize' => $pageSize,
             'totalCount' => $query->count(),
         ]);
         

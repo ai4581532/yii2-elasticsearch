@@ -114,14 +114,14 @@ class ElasticController extends Controller{
             
             $elastic = new Elastic();
             
-            $rows = 5;
- 
-            $count= $rows/5;
+            $rows = 30000;
+            $pageSize = 3;
+            $count= $rows/$pageSize;
             
-            for($i=0; $i<$count; $i++) {
+            for($i=500; $i<$count; $i++) {
                 
                 //每次循环建立5条循环
-                $elastic->batchIndexData($i);
+                $elastic->batchIndexData($i,$pageSize);
                 
             }
             
