@@ -4,8 +4,8 @@ namespace app\components;
 
 use Yii;
 use Elasticsearch\ClientBuilder;
- 
-
+use app\models\AppIosFlat;
+use yii\data\Pagination;
 /**
  * Elastic组件类
  * 
@@ -490,7 +490,7 @@ class Elastic {
         ];
         
         //查询上线显示的app
-        $query = AppIosFlat::find()->select(array_keys($filedMap))->where();
+        $query = AppIosFlat::find()->select(array_keys($filedMap))->where(["is_show"=>"y","is_delete"=>"n"]);
         
         $pagination = new Pagination([
             'page' => $page,

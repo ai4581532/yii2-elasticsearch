@@ -2,8 +2,6 @@
 namespace app\controllers;
 
 use app\components\Elastic;
-use app\models\AppIosFlat;
-use yii\data\Pagination;
 use yii\web\Controller;
 
 class ElasticController extends Controller{
@@ -116,7 +114,7 @@ class ElasticController extends Controller{
             
             $elastic = new Elastic();
             
-            $rows = 20000;
+            $rows = 5;
  
             $count= $rows/5;
             
