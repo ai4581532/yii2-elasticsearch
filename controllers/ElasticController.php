@@ -29,6 +29,74 @@ class ElasticController extends Controller{
         return  json_encode($response);
     }
     
+    public function actionDeleteindex(){
+        $elastic = new Elastic();
+
+        $index = "tutuapp-ios-zh";
+
+        $response = $elastic->deleteIndex($index);
+
+        return  json_encode($response);
+    }
+    
+    public function actionGetindexmapping(){
+        $elastic = new Elastic();
+        
+        $index = "tutuapp-ios-zh";
+        
+        $response = $elastic->getIndexMapping($index);
+        
+        return  json_encode($response);
+    }
+    
+    public function actionSetindexmapping(){
+        $elastic = new Elastic();
+        
+        $index = "tutuapp-ios-zh";
+        
+        $properties =[
+            //entity_id app_name app_category_first_name  app_version app_language app_rating app_system app_current_score  app_introduction app_current_newfunction  app_free_limit
+            
+            'entity_id' => [
+                'type' => 'integer',
+                "boost"=> 1,
+                //'analyzer' => 'standard'
+            ],
+            'app_name' => [
+                'type' => 'text',
+                'boost'=> 10,
+                'analyzer' => 'ik_max_word'
+            ],
+            'app_category_first_name' => [
+                'type' => 'text',
+                'boost'=> 2,
+                'analyzer' => 'ik_max_word'
+            ],
+            'app_category_first_code' => [
+                'type' => 'text',
+            ],
+            'app_category_first_id' => [
+                'type' => 'integer',
+                'boost'=> 1,
+            ],
+            'app_introduction' => [
+                'type' => 'text',
+                "boost"=> 8,
+                'analyzer' => 'ik_max_word'
+            ],
+            'app_current_newfunction' => [
+                'type' => 'text',
+                'boost'=> 6,
+                'analyzer' => 'ik_max_word'
+            ],
+            
+        ];
+        
+        $response = $elastic->setIndexMapping($index,$properties);
+        
+        return  json_encode($response);
+    }
+    
     public function actionSearch(){
         $elastic = new Elastic();
         
@@ -43,63 +111,26 @@ class ElasticController extends Controller{
     }
     
     public function actionBatchindexdata(){
+        
         try {
-            $query = AppIosFlat::find()->select(["id","entity_id","app_name","app_introduction"]);
-
-            $pagination = new Pagination([
-                'defaultPageSize' => 5,
-                'totalCount' => $query->count(),
-            ]);
-
-            $apps = $query->orderBy('id')
-            ->offset($pagination->offset)
-            ->limit($pagination->limit)
-            ->all();
-
-            $app = $apps[0];
-
+            
             $elastic = new Elastic();
-            $index = "tutuapp-ios-zh";
-
-            //foreach ($apps as $index => $app) {
-//                $app= $apps[1];
-//                $body = array(
-//                    "entity_id"=>$app->entity_id,
-//                    "app_name"=>$app->app_name,
-//                    "app_introduction"=>$app->app_introduction,
-//                    "app_current_newfunction"=>$app->app_current_newfunction
-//                );
-//
-//                $id = $app->entity_id;
-//
-//                $response = $elastic->createDocument($index,$id,$body);
-//
-//                return  json_encode($response);
-            //}
             
-            $params = array();
+            $rows = 20000;
+ 
+            $count= $rows/5;
             
-            foreach ($apps as $i => $app){
-                $params['body'][] = [
-                    'index' => [
-                        '_index' => $index,
-                        '_type' => '_doc',
-                        '_id' => $app->entity_id
-                    ]
-                ];
-
-                $params['body'][] = [
-                    "entity_id"=>$app->entity_id,
-                    "app_name"=>$app->app_name,
-                    "app_introduction"=>$app->app_introduction,
-                    "app_current_newfunction"=>$app->app_current_newfunction
-                ];
+            for($i=0; $i<$count; $i++) {
+                
+                //每次循环建立5条循环
+                $elastic->batchIndexData($i);
+                
             }
-
-            $response = $elastic->bulkDocument($params);
             
-            return  json_encode($response);
+            //return  json_encode($response);
 
+            return "ok";
+            
         } catch (\Exception $e) {
 
             return $e->getMessage();

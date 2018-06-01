@@ -52,6 +52,18 @@ class Elastic {
                     'boost'=> 10,
                     'analyzer' => 'ik_max_word'
                 ],
+                'app_category_first_name' => [
+                    'type' => 'text',
+                    'boost'=> 2,
+                    'analyzer' => 'ik_max_word'
+                ],
+                'app_category_first_code' => [
+                    'type' => 'text',
+                ],
+                'app_category_first_id' => [
+                    'type' => 'integer',
+                    'boost'=> 1,
+                ],
                 'app_introduction' => [
                     'type' => 'text',
                     "boost"=> 8,
@@ -130,6 +142,64 @@ class Elastic {
             $result["message"]=$e->getMessage();
         }
             
+        return $result;
+    }
+    
+    /**
+     * 获取索引mapping 
+     * @param unknown $index
+     * @return boolean[]|string[]|NULL[]|unknown[]
+     */
+    public function getIndexMapping($index){
+        $result = array("status"=>true,"message"=>"success","data"=>"");
+        
+        $params = ['index' => $index];
+        
+        try {
+            $response = $this->getClient()->indices()->getMapping($params);
+            
+            $result["data"] = $response;
+            
+        } catch (\Exception $e) {
+            $result["status"]=false;
+            $result["message"]=$e->getMessage();
+        }
+        
+        return $result;
+    }
+    
+    /**
+     * 设置索引mapping
+     * 
+     * @param string $index
+     * @param array $properties
+     * @param string $type
+     * @return array
+     */
+    public function setIndexMapping($index,$properties,$type="_doc"){
+        $result = array("status"=>true,"message"=>"success","data"=>"");
+        
+        $params = [
+            'index' => 'my_index',
+            'type' => $type,
+            'body' => [
+                $type => [
+ 
+                    'properties' => $properties
+                ]
+            ]
+        ];
+        
+        try {
+            $response = $this->getClient()->indices()->putMapping($params);
+            
+            $result["data"] = $response;
+            
+        } catch (\Exception $e) {
+            $result["status"]=false;
+            $result["message"]=$e->getMessage();
+        }
+        
         return $result;
     }
     
@@ -406,4 +476,63 @@ class Elastic {
     public function searchGroup(){
         
     }
+    
+    public function batchIndexData($page=0){
+        
+        $filedMap = [
+            "id"=>"id",
+            "entity_id"=>"entity_id",
+            "app_name"=>"app_name",
+            "app_category_first_name"=>"app_category_first_name",
+            "app_category_first_code"=>"app_category_first_code",
+            "app_category_first_id"=>"app_category_first_id",
+            "app_introduction"=>"app_introduction",
+        ];
+        
+        //查询上线显示的app
+        $query = AppIosFlat::find()->select(array_keys($filedMap))->where();
+        
+        $pagination = new Pagination([
+            'page' => $page,
+            'defaultPageSize' => 5,
+            'totalCount' => $query->count(),
+        ]);
+        
+        $apps = $query->orderBy('id')
+        ->offset($pagination->offset)
+        ->limit($pagination->limit)
+        ->all();
+        
+        $elastic = new Elastic();
+        $index = "tutuapp-ios-zh";
+        
+        $params = array();
+        
+        foreach ($apps as $i => $app){
+            $params['body'][] = [
+                'index' => [
+                    '_index' => $index,
+                    '_type' => '_doc',
+                    '_id' => $app->entity_id
+                ]
+            ];
+            
+            $params['body'][] = [
+                "entity_id"=>$app->entity_id,
+                "app_name"=>$app->app_name,
+                
+                "app_category_first_name"=>$app->app_category_first_name,
+                "app_category_first_code"=>$app->app_category_first_code,
+                "app_category_first_id"=>$app->app_category_first_id,
+                
+                "app_introduction"=>$app->app_introduction,
+                "app_current_newfunction"=>$app->app_current_newfunction
+            ];
+        }
+        
+        $response = $elastic->bulkDocument($params);
+        
+        return $response;
+    }
+    
 }
