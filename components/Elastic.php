@@ -8,39 +8,57 @@ use app\models\AppIosFlat;
 use yii\data\Pagination;
 /**
  * Elastic组件类
- * 
+ *
  * @author charley.wang
  *
  */
 class Elastic {
-    
+
+    const TUTUAPP_IOS_ZH = "tutuapp-ios-zh";
+    const TUTUAPP_IOS_EN = "tutuapp-ios-en";
+
     private static $client;
-    
-    
+
     public function __construct(){
-        
+
         $esParam = Yii::$app->params['elastic'];
-        
+
         self::$client = ClientBuilder::fromConfig($esParam);
     }
-    
+
     /**
      * 获取client
      * @return \Elasticsearch\Client
      */
     public function getClient(){
-        return self::$client;        
+        return self::$client;
     }
-    
+
+    public function getIndexName($lang,$platform){
+        switch($lang){
+            case "zh":
+                return self::TUTUAPP_IOS_ZH;
+                break;
+            case "zh-cn":
+                return self::TUTUAPP_IOS_ZH;
+                break;
+            case "en":
+                return self::TUTUAPP_IOS_EN;
+                breack;
+            default:
+                return self::TUTUAPP_IOS_EN;
+        }
+    }
+
     /**
-     * 创建索引      
+     * 创建索引
      */
-    public function createIndex($index,$properties=array(),$type="_doc"){
-        $result = array("status"=>true,"message"=>"success","data"=>"");
-        
+    public function createIndex($index,$properties=[],$type="_doc"){
+        $result = ["status" => true,"message"=>"success","data"=>""];
+
         if(empty($properties)){
             $properties =[
-                //entity_id app_name app_category_first_name  app_version app_language app_rating app_system app_current_score  app_introduction app_current_newfunction  app_free_limit 
+                //entity_id app_name app_category_first_name  app_version app_language app_rating app_system app_current_score  app_introduction app_current_newfunction  app_free_limit
 
                 'entity_id' => [
                     'type' => 'integer',
@@ -74,11 +92,11 @@ class Elastic {
                     'boost'=> 6,
                     'analyzer' => 'ik_max_word'
                 ],
- 
+
             ];
-            
+
         }
-        
+
         $params = [
             'index' => $index,
             'body' => [
@@ -93,7 +111,7 @@ class Elastic {
                 ]
             ]
         ];
- 
+
         try {
             $response = $this->getClient()->indices()->create($params);
             $result["data"] = $response;
@@ -101,19 +119,19 @@ class Elastic {
             $result["status"]=false;
             $result["message"]=$e->getMessage();
         }
-        
+
         return $result;
-        
+
     }
-    
+
     /**
-     * 删除索引 
+     * 删除索引
      */
     public function deleteIndex($index){
-        $result = array("status"=>true,"message"=>"success","data"=>"");
-        
+        $result = ["status" => true,"message"=>"success","data"=>""];
+
         $params = ['index' => $index];
-        
+
         try {
             $response = $this->getClient()->indices()->delete($params);
             $result["data"] = $response;
@@ -121,19 +139,19 @@ class Elastic {
             $result["status"]=false;
             $result["message"]=$e->getMessage();
         }
-        
+
         return $result;
     }
-    
+
     /**
      * 获取索引
      * @return array
      */
     public function getIndex($index){
-        $result = array("status"=>true,"message"=>"success","data"=>"");
-        
+        $result = ["status" => true,"message"=>"success","data"=>""];
+
         $params = ['index' => $index];
-        
+
         try {
             $response = $this->getClient()->indices()->get($params);
             $result["data"] = $response;
@@ -141,86 +159,86 @@ class Elastic {
             $result["status"]=false;
             $result["message"]=$e->getMessage();
         }
-            
+
         return $result;
     }
-    
+
     /**
-     * 获取索引mapping 
+     * 获取索引mapping
      * @param unknown $index
      * @return boolean[]|string[]|NULL[]|unknown[]
      */
     public function getIndexMapping($index){
-        $result = array("status"=>true,"message"=>"success","data"=>"");
-        
+        $result = ["status" => true,"message"=>"success","data"=>""];
+
         $params = ['index' => $index];
-        
+
         try {
             $response = $this->getClient()->indices()->getMapping($params);
-            
+
             $result["data"] = $response;
-            
+
         } catch (\Exception $e) {
             $result["status"]=false;
             $result["message"]=$e->getMessage();
         }
-        
+
         return $result;
     }
-    
+
     /**
      * 设置索引mapping
-     * 
+     *
      * @param string $index
      * @param array $properties
      * @param string $type
      * @return array
      */
     public function setIndexMapping($index,$properties,$type="_doc"){
-        $result = array("status"=>true,"message"=>"success","data"=>"");
-        
+        $result = ["status" => true,"message"=>"success","data"=>""];
+
         $params = [
             'index' => 'my_index',
             'type' => $type,
             'body' => [
                 $type => [
- 
+
                     'properties' => $properties
                 ]
             ]
         ];
-        
+
         try {
             $response = $this->getClient()->indices()->putMapping($params);
-            
+
             $result["data"] = $response;
-            
+
         } catch (\Exception $e) {
             $result["status"]=false;
             $result["message"]=$e->getMessage();
         }
-        
+
         return $result;
     }
-    
+
     /**
      * 获取索引列表
      */
     public function getIndexList(){
-        $result = array("status"=>true,"message"=>"success","data"=>"");
-        
+        $result = ["status" => true,"message"=>"success","data"=>""];
+
         $params = ['index' => '*'];
-        
+
         try {
             $response = $this->getClient()->indices()->get($params);
-            
+
             $result["data"] = $response;
-            
+
         } catch (\Exception $e) {
             $result["status"]=false;
             $result["message"]=$e->getMessage();
         }
-        
+
         return $result;
     }
 
@@ -233,27 +251,27 @@ class Elastic {
      * @return array
      */
     public function createDocument($index, $id, $body, $type = "_doc"){
-        $result = array("status"=>true,"message"=>"success","data"=>"");
-        
+        $result = ["status" => true,"message"=>"success","data"=>""];
+
         $params = [
             'index' => $index,
             'type' => $type,
             'id' => $id,
             'body' => $body
         ];
-        
+
         try {
-            
+
             $response = $this->getClient()->index($params);
             $result["data"] = $response;
-            
+
         } catch (\Exception $e) {
 
             $result["status"]=false;
             $result["message"]=$e->getMessage();
 
         }
-        
+
         return $result;
     }
 
@@ -266,8 +284,8 @@ class Elastic {
      * @return array
      */
     public function updateDocument($index, $id, $body, $type = "_doc"){
-        $result = array("status"=>true,"message"=>"success","data"=>"");
-        
+        $result = ["status" => true,"message"=>"success","data"=>""];
+
         $params = [
             'index' => $index,
             'type' => $type,
@@ -276,32 +294,32 @@ class Elastic {
                 'doc' => $body
             ]
         ];
-        
+
         try {
-            
+
             $response = $this->getClient()->update($params);
             $result["data"] = $response;
-            
+
         } catch (\Exception $e) {
             $result["status"]=false;
             $result["message"]=$e->getMessage();
         }
-        
+
         return $result;
     }
-    
+
     /**
-     * 删除文档 
+     * 删除文档
      */
     public function deleteDocument($index,$id,$type="_doc"){
-        $result = array("status"=>true,"message"=>"success","data"=>"");
-        
+        $result = ["status" => true,"message"=>"success","data"=>""];
+
         $params = [
             'index' => $index,
             'type' => $type,
             'id' => $id
         ];
-        
+
         try {
             $response = $this->getClient()->delete($params);
             $result["data"] = $response;
@@ -309,22 +327,26 @@ class Elastic {
             $result["status"]=false;
             $result["message"]=$e->getMessage();
         }
-        
+
         return $result;
     }
 
     /**
      * 获取document
+     * @param $index
+     * @param $id
+     * @param string $type
+     * @return array
      */
     public function getDocument($index,$id,$type="_doc"){
-        $result = array("status"=>true,"message"=>"success","data"=>"");
-        
+        $result = ["status" => true,"message"=>"success","data"=>""];
+
         $params = [
             'index' => $index,
             'type' => $type,
             'id' => $id
         ];
-        
+
         try {
             $response = $this->getClient()->get($params);
             $result["data"] = $response;
@@ -332,12 +354,17 @@ class Elastic {
             $result["status"]=false;
             $result["message"]=$e->getMessage();
         }
-        
+
         return $result;
     }
 
+    /**
+     * 批量创建更新document
+     * @param $params
+     * @return array
+     */
     public function bulkDocument($params){
-        $result = array("status"=>true,"message"=>"success","data"=>"");
+        $result = ["status" => true,"message"=>"success","data"=>""];
 
         try {
             $response = $this->getClient()->bulk($params);
@@ -348,7 +375,6 @@ class Elastic {
         }
 
         return $result;
-
     }
 
     /**
@@ -358,19 +384,19 @@ class Elastic {
      * @param string $queryType 搜索类型
      * @return NULL|array
      */
-    public function getQueryBody($queryString,$queryFileds=array(),$queryType="simple_query_string"){
+    public function getQueryBody($queryString,$queryFileds=[],$queryType="simple_query_string"){
         $query =[];
-        
+
         if(empty($queryString)){
             return null;
         }
-        
+
         if(empty($queryFileds)){
-            $queryFileds = ["app_name","app_introduction","app_current_newfunction"];
+            $queryFileds = ["app_name","app_introduction","app_current_newfunction","app_category_first_name","app_category_first_code","app_category_first_id"];
 
             //entity_id app_name app_category_first_name  app_version app_language app_rating app_system app_current_score  app_introduction app_current_newfunction  app_free_limit
         }
-        
+
         switch ($queryType){
             case 'multi_match':
                 $query = [
@@ -379,7 +405,7 @@ class Elastic {
                         "fields" => $queryFileds
                     ]
                 ];
-                
+
                 break;
             case 'query_string':
                 $query = [
@@ -389,7 +415,7 @@ class Elastic {
                         //"analyzer" =>,
                     ]
                 ];
-                
+
                 break;
             default:
                 $query = [
@@ -399,42 +425,41 @@ class Elastic {
                         //"analyzer" =>,
                     ]
                 ];
-                
+
         }
-        
+
         return $query;
     }
-    
 
     /**
      * 搜索
-     * 
+     *
      * @param array $queryBody 搜索主体参数
      * @param string $index 索引名称
      * @param string $type doc分组
-     * @param array $sourceFileds 返回搜索的源字段
-     * @param array $page 分页参数
+     * @param array $sourceFiled 返回搜索的源字段
+     * @param array $pages 分页参数
      * @param array $order 排序参数
      * @return array
-     * 
+     *
      * $sourceFileds = ["account_number", "balance"];
-     * $page = ["pageNum"=>0,"pageSize" =>10];
+     * $pages = ["page"=>0,"pageCount" =>10];
      * $order = ["balance"=>["order"=>"desc"]];
-     * 
+     *
      */
-    public function search($queryBody, $index, $type='_doc', $sourceFileds=array(), $page=array(), $order=array()){
-        
-        $result = array("status"=>true,"message"=>"success","data"=>"");
-        
+    public function search($queryBody, $index, $type='_doc', $sourceFiled=[], $pages=[], $order=[]){
+
+        $result = ["status" => true,"message"=>"success","data"=>""];
+
         if(empty($index)){
             $result["status"]=false;
             $result["message"]="param index is null!";
             return $result;
         }
-        
-        if(empty($page)){
-            $pages["pageNum"] = 0;
-            $pages["pageSize"] = 10;
+
+        if(empty($pages)){
+            $pages["page"] = 0;
+            $pages["pageCount"] = 10;
         }
 
         $params = [
@@ -442,43 +467,366 @@ class Elastic {
             'type' => $type,
             'body' => [
                 'query' => $queryBody,
-                
-                "_source"=>$sourceFileds,
-                
-                "from"=>$pages["pageNum"],
-                
-                "size"=>$pages["pageSize"],
-                
+
+                "_source"=>$sourceFiled,
+
+                "from"=>$pages["page"],
+
+                "size"=>$pages["pageCount"],
+
                 'sort'=>$order
-                
+
             ]
         ];
-        
+
         try {
-            
-            $result["data"] = $this->getClient()->search($params);
-            
+
+            $response = $this->getClient()->search($params);
+
+            $result["data"] = $this->dealHitsResponse($response);
+
         } catch (\Exception $e) {
-            
+
             $result["status"]=false;
-            
+
             $result["message"]=$e->getMessage();
-            
+
         }
-        
+
         return $result;
-        
+
     }
-    
+
     /**
-     * 聚合搜索 
+     * 聚合搜索
      */
     public function searchGroup(){
-        
+
     }
-    
+
+    /**
+     * @param $lang
+     * @param string $platform
+     * @param array $pages
+     * @param null $index
+     * @param string $type
+     * @return array
+     */
+    public function searchHot($lang, $platform='ios', $pages=[]){
+        $result = array("status" => true,"message"=>"success","data"=>"");
+
+        $index = $this->getIndexName($lang,$platform);
+        $sourceFiled = [];
+        $queryBody = ["match_all" => new \stdClass()];
+        $order = ["searchCount" => ["order"=>"desc"]];
+
+        if(empty($index)){
+            $result["status"]=false;
+            $result["message"]="param index is null!";
+            return $result;
+        }
+
+        if(empty($pages)){
+            $pages["page"] = 0;
+            $pages["pageCount"] = 10;
+        }
+
+        $params = [
+            'index' => $index,
+            'type' => $type,
+            'body' => [
+                'query' => $queryBody,
+
+                "_source"=>$sourceFiled,
+
+                "from"=>$pages["page"],
+
+                "size"=>$pages["pageCount"],
+
+                'sort'=>$order
+
+            ]
+        ];
+        //return $params;
+        try {
+
+            $response = $this->getClient()->search($params);
+
+            $result["data"] = $this->dealHitsResponse($response);
+
+        } catch (\Exception $e) {
+
+            $result["status"]=false;
+
+            $result["message"]=$e->getMessage();
+
+        }
+
+        return $result;
+    }
+
+    /**
+     *
+     * @param $lang
+     * @param string $platform
+     * @param array $pages
+     * @param null $index
+     * @param string $type
+     * @return array
+     */
+    public function searchRank($lang, $platform='ios',$appType='app', $pages=[]){
+        $result = array("status" => true,"message"=>"success","data"=>"");
+
+        $index = $this->getIndexName($lang,$platform);
+
+        $sourceFiled = [];
+
+        $queryBody = ["match_all" => new \stdClass()];
+
+        $queryBody = ["bool" =>
+            ["must"=>[
+                [ 'match' => [ 'apptype' => $appType=='app'?1:0 ] ]
+            ]
+            ]
+        ];
+
+        $order = ["downCount" => ["order"=>"desc"]];
+
+        if(empty($index)){
+            $result["status"]=false;
+            $result["message"]="param index is null!";
+            return $result;
+        }
+
+        if(empty($pages)){
+            $pages["page"] = 0;
+            $pages["pageCount"] = 10;
+        }
+
+        $params = [
+            'index' => $index,
+            'type' => "_doc",
+            'body' => [
+                'query' => $queryBody,
+
+                "_source"=>$sourceFiled,
+
+                "from"=>$pages["page"],
+
+                "size"=>$pages["pageCount"],
+
+                'sort'=>$order
+
+            ]
+        ];
+        //return $params;
+        try {
+
+            $response = $this->getClient()->search($params);
+
+            $result["data"] = $this->dealHitsResponse($response);
+
+        } catch (\Exception $e) {
+
+            $result["status"]=false;
+
+            $result["message"]=$e->getMessage();
+
+        }
+
+        return $result;
+    }
+
+    public function searchRelatedKeys($queryString, $lang, $platform="ios", $pages=[], $order=[]){
+        $result = ["status" => true,"message"=>"success","data"=>""];
+
+        $type='_doc';
+
+        $index = $this->getIndexName($lang,$platform);
+
+        $sourceFiled = [];
+        $queryFileds = ["app_name"];
+
+        $queryBody = $this->getQueryBody($queryString,$queryFileds);
+
+        if(empty($index)){
+            $result["status"]=false;
+            $result["message"]="param index is null!";
+            return $result;
+        }
+
+        if(empty($pages)){
+            $pages["page"] = 0;
+            $pages["pageCount"] = 10;
+        }
+
+        $params = [
+            'index' => $index,
+            'type' => $type,
+            'body' => [
+                'query' => $queryBody,
+
+                "_source"=>$sourceFiled,
+
+                "from"=>$pages["page"],
+
+                "size"=>$pages["pageCount"],
+
+                'sort'=>$order
+
+            ]
+        ];
+        //return $params;
+        try {
+            $response = $this->getClient()->search($params);
+
+            $result["data"] = $this->dealHitsResponse($response);
+
+            //return $response;
+
+        } catch (\Exception $e) {
+
+            $result["status"]=false;
+
+            $result["message"]=$e->getMessage();
+
+        }
+
+        return $result;
+    }
+
+    public function searchByRelatedKey($key,$lang,$platform="ios", $pages=[], $order=[]){
+        $result = ["status" => true,"message"=>"success","data"=>""];
+
+        $type='_doc';
+
+        $index = $this->getIndexName($lang,$platform);
+
+        $sourceFiled = [];
+
+        $queryFileds = ["app_name","app_introduction","app_current_newfunction"];
+        $queryBody = $this->getQueryBody($key,$queryFileds);
+
+        if(empty($index)){
+            $result["status"]=false;
+            $result["message"]="param index is null!";
+            return $result;
+        }
+
+        if(empty($pages)){
+            $pages["page"] = 0;
+            $pages["pageCount"] = 10;
+        }
+
+        $params = [
+            'index' => $index,
+            'type' => $type,
+            'body' => [
+                'query' => $queryBody,
+
+                "_source"=>$sourceFiled,
+
+                "from"=>$pages["page"],
+
+                "size"=>$pages["pageCount"],
+
+                'sort'=>$order
+
+            ]
+        ];
+        //return $params;
+        try {
+            $response = $this->getClient()->search($params);
+
+            $result["data"] = $this->dealHitsResponse($response);
+
+            //return $response;
+
+        } catch (\Exception $e) {
+
+            $result["status"]=false;
+
+            $result["message"]=json_decode($e->getMessage());
+
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param $lang
+     * @param $categoryCode
+     * @param string $platform
+     * @param array $pages
+     * @param array $order
+     * @param null $index
+     * @param string $type
+     * @return array
+     */
+    public function searchByCategoryCode($categoryCode, $lang, $platform="ios", $pages=[], $order=[]){
+        $result = ["status" => true,"message"=>"success","data"=>""];
+
+        $type='_doc';
+
+        $index = $this->getIndexName($lang,$platform);
+
+        $sourceFiled = [];
+
+        $queryBody = ["bool" =>
+            ["must"=>[
+                [ 'match' => [ 'app_category_first_code' => $categoryCode ] ]
+            ]
+            ]
+        ];
+
+        if(empty($index)){
+            $result["status"]=false;
+            $result["message"]="param index is null!";
+            return $result;
+        }
+
+        if(empty($pages)){
+            $pages["page"] = 0;
+            $pages["pageCount"] = 10;
+        }
+
+        $params = [
+            'index' => $index,
+            'type' => $type,
+            'body' => [
+                'query' => $queryBody,
+
+                "_source"=>$sourceFiled,
+
+                "from"=>$pages["page"],
+
+                "size"=>$pages["pageCount"],
+
+                'sort'=>$order
+
+            ]
+        ];
+        //return $params;
+        try {
+            $response = $this->getClient()->search($params);
+
+            $result["data"] = $this->dealHitsResponse($response);
+
+            //return $response;
+
+        } catch (\Exception $e) {
+
+            $result["status"]=false;
+
+            $result["message"]=$e->getMessage();
+
+        }
+
+        return $result;
+    }
+
     public function batchIndexData($page=0,$pageSize=3){
-        
+
         $filedMap = [
             "id"=>"id",
             "entity_id"=>"entity_id",
@@ -488,26 +836,26 @@ class Elastic {
             "app_category_first_id"=>"app_category_first_id",
             "app_introduction"=>"app_introduction",
         ];
-        
+
         //查询上线显示的app
         $query = AppIosFlat::find()->select(array_keys($filedMap))->where(["is_show"=>"y","is_delete"=>"n"]);
-        
+
         $pagination = new Pagination([
             'page' => $page,
             'defaultPageSize' => $pageSize,
             'totalCount' => $query->count(),
         ]);
-        
+
         $apps = $query->orderBy('id')
-        ->offset($pagination->offset)
-        ->limit($pagination->limit)
-        ->all();
-        
+            ->offset($pagination->offset)
+            ->limit($pagination->limit)
+            ->all();
+
         $elastic = new Elastic();
         $index = "tutuapp-ios-zh";
-        
-        $params = array();
-        
+
+        $params = [];
+
         foreach ($apps as $i => $app){
             $params['body'][] = [
                 'index' => [
@@ -516,23 +864,38 @@ class Elastic {
                     '_id' => $app->entity_id
                 ]
             ];
-            
+
             $params['body'][] = [
                 "entity_id"=>$app->entity_id,
                 "app_name"=>$app->app_name,
-                
+
                 "app_category_first_name"=>$app->app_category_first_name,
                 "app_category_first_code"=>$app->app_category_first_code,
                 "app_category_first_id"=>$app->app_category_first_id,
-                
+
                 "app_introduction"=>$app->app_introduction,
                 "app_current_newfunction"=>$app->app_current_newfunction
             ];
         }
-        
+
         $response = $elastic->bulkDocument($params);
-        
+
         return $response;
     }
-    
+
+    /**
+     * 处理hits格式的响应
+     * @param $hits
+     * @return array
+     */
+    public function dealHitsResponse($response){
+        $list = [];
+        if($response["hits"]){
+            $hits = $response["hits"]["hits"];
+            foreach($hits as $index=>$one){
+                $list[]=$one["_source"];
+            }
+        }
+        return $list;
+    }
 }
