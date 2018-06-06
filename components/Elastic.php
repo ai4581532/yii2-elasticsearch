@@ -16,6 +16,88 @@ class Elastic {
     const TUTUAPP_IOS_ZH = "tutuapp-ios-zh";
     const TUTUAPP_IOS_EN = "tutuapp-ios-en";
 
+    const PROPS = [
+                'entity_id' => [
+                    'type' => 'integer',
+                    "boost"=> 1,
+                    //'analyzer' => 'standard'
+                ],
+                'app_name' => [
+                    'type' => 'text',
+                    'boost'=> 8,
+                    'analyzer' => 'ik_max_word'
+                ],
+                'app_category_first_name' => [
+                    'type' => 'text',
+                    'boost'=> 2,
+                    'analyzer' => 'ik_max_word'
+                ],
+                'app_category_first_code' => [
+                    'type' => 'text',
+                ],
+                'app_category_first_id' => [
+                    'type' => 'integer',
+                    'boost'=> 1,
+                ],
+                'app_introduction' => [
+                    'type' => 'text',
+                    "boost"=> 7,
+                    'analyzer' => 'ik_max_word'
+                ],
+                'app_current_newfunction' => [
+                    'type' => 'text',
+                    'boost'=> 6,
+                    'analyzer' => 'ik_max_word'
+                ],
+                'app_name_we' => [
+                    'type' => 'text',
+                    'boost'=> 10,
+                    'analyzer' => 'ik_max_word'
+                ],
+
+                'app_type' => [
+                    'type' => 'text',
+                ],
+
+                'update_date' => [
+                    'type' => 'date',
+                    //'format'=> 'yyyy-MM-dd HH:mm:ss',
+                ],
+                'create_date' => [
+                    'type' => 'date',
+                    //'format'=> 'yyyy-MM-dd HH:mm:ss',
+                ],
+
+                'week_download_count' => [
+                    'type' => 'integer',
+                    'boost'=> 8,
+                ],
+                'month_download_count' => [
+                    'type' => 'integer',
+                    'boost'=> 5,
+                ],
+                'year_download_count' => [
+                    'type' => 'integer',
+                    'boost'=> 2,
+                ],
+                'week_view_count' => [
+                    'type' => 'integer',
+                    'boost'=> 8,
+                ],
+                'month_view_count' => [
+                    'type' => 'integer',
+                    'boost'=> 5,
+                ],
+                'year_view_count' => [
+                    'type' => 'integer',
+                    'boost'=> 2,
+                ],
+
+
+
+
+    ];
+
     private static $client;
 
     public function __construct(){
@@ -56,44 +138,7 @@ class Elastic {
         $result = ["status" => true,"message"=>"success","data"=>""];
 
         if(empty($properties)){
-            $properties =[
-                //entity_id app_name app_category_first_name  app_version app_language app_rating app_system app_current_score  app_introduction app_current_newfunction  app_free_limit
-
-                'entity_id' => [
-                    'type' => 'integer',
-                    "boost"=> 1,
-                    //'analyzer' => 'standard'
-                ],
-                'app_name' => [
-                    'type' => 'text',
-                    'boost'=> 10,
-                    'analyzer' => 'ik_max_word'
-                ],
-                'app_category_first_name' => [
-                    'type' => 'text',
-                    'boost'=> 2,
-                    'analyzer' => 'ik_max_word'
-                ],
-                'app_category_first_code' => [
-                    'type' => 'text',
-                ],
-                'app_category_first_id' => [
-                    'type' => 'integer',
-                    'boost'=> 1,
-                ],
-                'app_introduction' => [
-                    'type' => 'text',
-                    "boost"=> 8,
-                    'analyzer' => 'ik_max_word'
-                ],
-                'app_current_newfunction' => [
-                    'type' => 'text',
-                    'boost'=> 6,
-                    'analyzer' => 'ik_max_word'
-                ],
-
-            ];
-
+            $properties = self::PROPS;
         }
 
         $params = [
@@ -391,9 +436,7 @@ class Elastic {
         }
 
         if(empty($queryFileds)){
-            $queryFileds = ["app_name","app_introduction","app_current_newfunction","app_category_first_name","app_category_first_code","app_category_first_id"];
-
-            //entity_id app_name app_category_first_name  app_version app_language app_rating app_system app_current_score  app_introduction app_current_newfunction  app_free_limit
+            $queryFileds = ["app_name","app_name_we","app_introduction","app_current_newfunction","app_category_first_name","app_category_first_code","app_category_first_id"];
         }
 
         switch ($queryType){
@@ -824,7 +867,7 @@ class Elastic {
         return $result;
     }
 
-    public function batchIndexData($apps,$index = "tutuapp-ios-zh"){
+    public function batchIndexData($apps,$fileds,$index = "tutuapp-ios-zh"){
         $params = [];
 
         foreach ($apps as $i => $app){
@@ -836,18 +879,16 @@ class Elastic {
                 ]
             ];
 
-            $params['body'][] = [
-                "entity_id"=>$app->entity_id,
-                "app_name"=>$app->app_name,
+            $bodyArray = [];
 
-                "app_category_first_name"=>$app->app_category_first_name,
-                "app_category_first_code"=>$app->app_category_first_code,
-                "app_category_first_id"=>$app->app_category_first_id,
+            foreach ($fileds as $filed){
+                $bodyArray[]= [$filed =>$app->$filed];
+            }
 
-                "app_introduction"=>$app->app_introduction,
-                "app_current_newfunction"=>$app->app_current_newfunction
-            ];
+            $params['body'][] = $bodyArray;
         }
+
+        return $params;
 
         $response = $this->bulkDocument($params);
         return $response;
