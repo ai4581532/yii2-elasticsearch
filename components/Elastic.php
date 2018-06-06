@@ -4,8 +4,7 @@ namespace app\components;
 
 use Yii;
 use Elasticsearch\ClientBuilder;
-use app\models\AppIosFlat;
-use yii\data\Pagination;
+
 /**
  * Elastic组件类
  *
@@ -533,7 +532,7 @@ class Elastic {
 
         $params = [
             'index' => $index,
-            'type' => $type,
+            'type' => "_doc",
             'body' => [
                 'query' => $queryBody,
 
@@ -825,35 +824,7 @@ class Elastic {
         return $result;
     }
 
-    public function batchIndexData($page=0,$pageSize=3){
-
-        $filedMap = [
-            "id"=>"id",
-            "entity_id"=>"entity_id",
-            "app_name"=>"app_name",
-            "app_category_first_name"=>"app_category_first_name",
-            "app_category_first_code"=>"app_category_first_code",
-            "app_category_first_id"=>"app_category_first_id",
-            "app_introduction"=>"app_introduction",
-        ];
-
-        //查询上线显示的app
-        $query = AppIosFlat::find()->select(array_keys($filedMap))->where(["is_show"=>"y","is_delete"=>"n"]);
-
-        $pagination = new Pagination([
-            'page' => $page,
-            'defaultPageSize' => $pageSize,
-            'totalCount' => $query->count(),
-        ]);
-
-        $apps = $query->orderBy('id')
-            ->offset($pagination->offset)
-            ->limit($pagination->limit)
-            ->all();
-
-        $elastic = new Elastic();
-        $index = "tutuapp-ios-zh";
-
+    public function batchIndexData($apps,$index = "tutuapp-ios-zh"){
         $params = [];
 
         foreach ($apps as $i => $app){
@@ -878,8 +849,7 @@ class Elastic {
             ];
         }
 
-        $response = $elastic->bulkDocument($params);
-
+        $response = $this->bulkDocument($params);
         return $response;
     }
 

@@ -10,6 +10,8 @@ namespace app\commands;
 use yii\console\Controller;
 use yii\console\ExitCode;
 use app\components\Elastic;
+use app\models\AppIosFlat;
+use yii\data\Pagination;
 /**
  * This command echoes the first argument that you have entered.
  *
@@ -28,17 +30,40 @@ class BatchIndexDataController extends Controller
     public function actionIndex($message = 'hello world')
     {
         try {
-
             $elastic = new Elastic();
 
             $rows = 30000;
-            $pageSize = 3;
+            $pageSize = 5;
             $count= $rows/$pageSize;
 
-            for($i=1200; $i<$count; $i++) {
+            $filedMap = [
+                "id"=>"id",
+                "entity_id"=>"entity_id",
+                "app_name"=>"app_name",
+                "app_category_first_name"=>"app_category_first_name",
+                "app_category_first_code"=>"app_category_first_code",
+                "app_category_first_id"=>"app_category_first_id",
+                "app_introduction"=>"app_introduction",
+            ];
+
+            //查询上线显示的app
+            $query = AppIosFlat::find()->select(array_keys($filedMap))->where(["is_show"=>"y","is_delete"=>"n"]);
+
+            for($page=4100; $page<$count; $page++) {
+
+                $pagination = new Pagination([
+                    'page' => $page,
+                    'defaultPageSize' => $pageSize,
+                    'totalCount' => $query->count(),
+                ]);
+
+                $apps = $query->orderBy('id')
+                    ->offset($pagination->offset)
+                    ->limit($pagination->limit)
+                    ->all();
 
                 //每次循环建立5条循环
-                $elastic->batchIndexData($i,$pageSize);
+                $elastic->batchIndexData($apps);
 
             }
 
