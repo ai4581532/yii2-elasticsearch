@@ -54,18 +54,16 @@ class Elastic {
                     'boost'=> 10,
                     'analyzer' => 'ik_max_word'
                 ],
-
-                'app_type' => [
-                    'type' => 'text',
+                'apptype' => [
+                    'type' => 'integer',
                 ],
-
                 'update_date' => [
                     'type' => 'date',
-                    //'format'=> 'yyyy-MM-dd HH:mm:ss',
+                    "format"=>"yyyy-MM-dd HH:mm:ss||yyyy-MM-dd||epoch_millis"
                 ],
                 'create_date' => [
                     'type' => 'date',
-                    //'format'=> 'yyyy-MM-dd HH:mm:ss',
+                    "format"=>"yyyy-MM-dd HH:mm:ss||yyyy-MM-dd||epoch_millis"
                 ],
 
                 'week_download_count' => [
@@ -92,10 +90,30 @@ class Elastic {
                     'type' => 'integer',
                     'boost'=> 2,
                 ],
-
-
-
-
+                'comment_count' => [
+                    'type' => 'integer',
+                    'boost'=> 5,
+                ],
+                'download_count' => [
+                    'type' => 'integer',
+                    'boost'=> 5,
+                ],
+                'score_count' => [
+                    'type' => 'integer',
+                    'boost'=> 5,
+                ],
+                'look_count' => [
+                    'type' => 'integer',
+                    'boost'=> 5,
+                ],
+                'favorite_count' => [
+                    'type' => 'integer',
+                    'boost'=> 5,
+                ],
+                'share_count' => [
+                    'type' => 'integer',
+                    'boost'=> 5,
+                ],
     ];
 
     private static $client;
@@ -238,15 +256,18 @@ class Elastic {
      * @param string $type
      * @return array
      */
-    public function setIndexMapping($index,$properties,$type="_doc"){
+    public function setIndexMapping($index,$properties=[],$type="_doc"){
         $result = ["status" => true,"message"=>"success","data"=>""];
 
+        if(empty($properties)){
+            $properties = self::PROPS;
+        }
+
         $params = [
-            'index' => 'my_index',
+            'index' => $index,
             'type' => $type,
             'body' => [
                 $type => [
-
                     'properties' => $properties
                 ]
             ]
@@ -687,7 +708,7 @@ class Elastic {
         $index = $this->getIndexName($lang,$platform);
 
         $sourceFiled = [];
-        $queryFileds = ["app_name"];
+        $queryFileds = ["app_name","app_name_we"];
 
         $queryBody = $this->getQueryBody($queryString,$queryFileds);
 
@@ -746,7 +767,7 @@ class Elastic {
 
         $sourceFiled = [];
 
-        $queryFileds = ["app_name","app_introduction","app_current_newfunction"];
+        $queryFileds = ["app_name","app_name_we","app_introduction","app_current_newfunction"];
         $queryBody = $this->getQueryBody($key,$queryFileds);
 
         if(empty($index)){
@@ -801,8 +822,6 @@ class Elastic {
      * @param string $platform
      * @param array $pages
      * @param array $order
-     * @param null $index
-     * @param string $type
      * @return array
      */
     public function searchByCategoryCode($categoryCode, $lang, $platform="ios", $pages=[], $order=[]){
@@ -867,31 +886,36 @@ class Elastic {
         return $result;
     }
 
-    public function batchIndexData($apps,$fileds,$index = "tutuapp-ios-zh"){
-        $params = [];
+    /**
+     * @param $apps
+     * @param $fileds
+     * @param string $idName
+     * @param string $index
+     * @return array
+     */
+    public function batchIndexData($apps, $fileds, $idName="entity_id", $index = "tutuapp-ios-zh"){
+        $params = ['body' => []];
 
         foreach ($apps as $i => $app){
             $params['body'][] = [
                 'index' => [
                     '_index' => $index,
                     '_type' => '_doc',
-                    '_id' => $app->entity_id
+                    '_id' => $app[$idName]
                 ]
             ];
 
             $bodyArray = [];
 
             foreach ($fileds as $filed){
-                $bodyArray[]= [$filed =>$app->$filed];
+                $bodyArray[$filed]= $app[$filed];
             }
 
             $params['body'][] = $bodyArray;
         }
 
-        return $params;
-
-        $response = $this->bulkDocument($params);
-        return $response;
+        //return $params;
+        return $this->bulkDocument($params);
     }
 
     /**

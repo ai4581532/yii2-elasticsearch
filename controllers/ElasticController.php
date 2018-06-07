@@ -55,43 +55,7 @@ class ElasticController extends Controller{
         
         $index = "tutuapp-ios-zh";
         
-        $properties =[
-            //entity_id app_name app_category_first_name  app_version app_language app_rating app_system app_current_score  app_introduction app_current_newfunction  app_free_limit
-            
-            'entity_id' => [
-                'type' => 'integer',
-                "boost"=> 1,
-                //'analyzer' => 'standard'
-            ],
-            'app_name' => [
-                'type' => 'text',
-                'boost'=> 10,
-                'analyzer' => 'ik_max_word'
-            ],
-            'app_category_first_name' => [
-                'type' => 'text',
-                'boost'=> 2,
-                'analyzer' => 'ik_max_word'
-            ],
-            'app_category_first_code' => [
-                'type' => 'text',
-            ],
-            'app_category_first_id' => [
-                'type' => 'integer',
-                'boost'=> 1,
-            ],
-            'app_introduction' => [
-                'type' => 'text',
-                "boost"=> 8,
-                'analyzer' => 'ik_max_word'
-            ],
-            'app_current_newfunction' => [
-                'type' => 'text',
-                'boost'=> 6,
-                'analyzer' => 'ik_max_word'
-            ],
-            
-        ];
+        $properties =[];
         
         $response = $elastic->setIndexMapping($index,$properties);
         
@@ -114,12 +78,9 @@ class ElasticController extends Controller{
     public function actionBatchindexdata(){
         try {
             $elastic = new Elastic();
-            
-            $rows = 30000;
-            $pageSize = 100;
-            $totalPageNum= $rows/$pageSize;
 
             $fileds = array_keys(Elastic::PROPS);
+
 
             //return  json_encode($fileds);
 
@@ -143,7 +104,11 @@ class ElasticController extends Controller{
             $count = Yii::$app->db->createCommand($sqlCount)->queryScalar();
             //return  json_encode($count);
 
-            for($page=1; $page<=$totalPageNum; $page++) {
+            $rows = $count;
+            $pageSize = 100;
+            $totalPageNum= $rows/$pageSize;
+
+            for($page=1; $page<=1; $page++) {
 
 //                $pagination = new Pagination([
 //                    'page' => $page,
@@ -151,17 +116,21 @@ class ElasticController extends Controller{
 //                    'totalCount' => $query->count(),
 //                ]);
 
-                $pagination = new Pagination([
-                    'page' => $page,
-                    'defaultPageSize' => $pageSize,
-                    'totalCount' => $count,
-                ]);
+//                $pagination = new Pagination([
+//                    'page' => $page,
+//                    'defaultPageSize' => $pageSize,
+//                    'totalCount' => $count,
+//                ]);
 
                 $offset = ($page-1)*$pageSize;
-                $apps = Yii::$app->db->createCommand($sql)->bindParam(":limit",$pageSize)->bindParam(":offset",$offset)
-                    ->queryAll();
+
+                $apps = Yii::$app->db->createCommand($sql)->bindParam(":limit",$pageSize)->bindParam(":offset",$offset)->queryAll();
 
                 foreach ($apps as $index=>$app){
+//                    if(empty($app["app_name_we"])){
+//                        $app["app_name_we"] = $app["app_name"];
+//                    }
+
                     $exten = Yii::$app->db->createCommand($sqlExten)->bindParam(":entity_id",$app["entity_id"])->queryOne();
                     $report = Yii::$app->db->createCommand($sqlReport)->bindParam(":entity_id",$app["entity_id"])->queryOne();
 
@@ -172,16 +141,18 @@ class ElasticController extends Controller{
                             "score_count"=>"0",
                             "look_count"=>"0",
                             "favorite_count"=>"0",
-                            "share_count"=>"0" ];
+                            "share_count"=>"0"
+                        ];
                     }
 
                     if(!is_array($report)){
                         $report =['week_download_count' => '0' ,
-                      'month_download_count' =>  '0',
-                      'year_download_count' =>  '0',
-                      'week_view_count' =>  '0'  ,
-                      'month_view_count' =>  '0',
-                      'year_view_count' =>  '0' ];
+                            'month_download_count' =>  '0',
+                            'year_download_count' =>  '0',
+                            'week_view_count' =>  '0',
+                            'month_view_count' =>  '0',
+                            'year_view_count' =>  '0'
+                        ];
                     }
 
                     $app = $app +$exten + $report;
@@ -193,11 +164,38 @@ class ElasticController extends Controller{
 //                    ->limit($pagination->limit)
 //                    ->all();
 
-                return  json_encode($apps);
-                //每次循环建立5条循环
-                $response = $elastic->batchIndexData($apps,$fileds);
+                //return  json_encode($apps);
 
-                return  json_encode($response);
+                //$elastic->batchIndexData($apps,$fileds);
+
+
+                $params = ['body' => []];
+                $index = "tutuapp-ios-zh";
+
+                foreach ($apps as $i => $app){
+                    $params['body'][] = [
+                        'index' => [
+                            '_index' => $index,
+                            '_type' => '_doc',
+                            '_id' => $app["entity_id"]
+                        ]
+                    ];
+
+                    $bodyArray = [];
+                    foreach ($fileds as $filed){
+                        $bodyArray[$filed]= $app[$filed];
+                    }
+
+                    $params['body'][] = $bodyArray;
+                }
+
+                //return json_encode($params);
+
+                $elastic->bulkDocument($params);
+
+                //$response = $elastic->batchIndexData($apps,$fileds);
+
+                //return  json_encode($response);
             }
 
             return "ok";
