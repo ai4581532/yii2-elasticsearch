@@ -33,8 +33,7 @@ class BatchIndexDataController extends Controller
         try {
             $elastic = new Elastic();
 
-            $fileds = array_keys(Elastic::PROPS);
-
+            $fileds = array_keys(Elastic::TUTUAPP_IOS_PROPS);
 
             //return  json_encode($fileds);
 

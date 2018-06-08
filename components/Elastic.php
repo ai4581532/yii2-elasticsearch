@@ -15,105 +15,137 @@ class Elastic {
 
     const TUTUAPP_IOS_ZH = "tutuapp-ios-zh";
     const TUTUAPP_IOS_EN = "tutuapp-ios-en";
+    const TUTUAPP_SEARCH_LOG = "tutuapp-search-log";
 
-    const PROPS = [
-                'entity_id' => [
-                    'type' => 'integer',
-                    "boost"=> 1,
-                    //'analyzer' => 'standard'
+    const TUTUAPP_IOS_PROPS = [
+        'entity_id' => [
+            'type' => 'integer',
+            "boost"=> 1,
+            //'analyzer' => 'standard'
+        ],
+        'app_name' => [
+            'type' => 'text',
+            'fields'=> [
+                'keyword'=>[
+                    'type'=> 'keyword'
                 ],
-                'app_name' => [
-                    'type' => 'text',
-                    'boost'=> 8,
-                    'analyzer' => 'ik_max_word'
+                'english'=>[
+                    'type'=> 'text',
+                    'analyzer'=> 'english'
                 ],
-                'app_category_first_name' => [
-                    'type' => 'text',
-                    'boost'=> 2,
-                    'analyzer' => 'ik_max_word'
+            ],
+            'boost'=> 8,
+            'analyzer' => 'ik_max_word'
+        ],
+        'app_category_first_name' => [
+            'type' => 'text',
+            'boost'=> 2,
+            'analyzer' => 'ik_max_word'
+        ],
+        'app_category_first_code' => [
+            'type' => 'keyword',
+        ],
+        'app_category_first_id' => [
+            'type' => 'integer',
+            'boost'=> 1,
+        ],
+        'app_introduction' => [
+            'type' => 'text',
+            'fields'=> [
+                'english'=>[
+                    'type'=> 'text',
+                    'analyzer'=> 'english'
                 ],
-                'app_category_first_code' => [
-                    'type' => 'text',
+            ],
+            'boost'=> 7,
+            'analyzer' => 'ik_max_word'
+        ],
+        'app_current_newfunction' => [
+            'type' => 'text',
+            'fields'=> [
+                'english'=>[
+                    'type'=> 'text',
+                    'analyzer'=> 'english'
                 ],
-                'app_category_first_id' => [
-                    'type' => 'integer',
-                    'boost'=> 1,
+            ],
+            'boost'=> 6,
+            'analyzer' => 'ik_max_word'
+        ],
+        'app_name_we' => [
+            'type' => 'text',
+            'fields'=> [
+                'english'=>[
+                    'type'=> 'text',
+                    'analyzer'=> 'english'
                 ],
-                'app_introduction' => [
-                    'type' => 'text',
-                    "boost"=> 7,
-                    'analyzer' => 'ik_max_word'
-                ],
-                'app_current_newfunction' => [
-                    'type' => 'text',
-                    'boost'=> 6,
-                    'analyzer' => 'ik_max_word'
-                ],
-                'app_name_we' => [
-                    'type' => 'text',
-                    'boost'=> 10,
-                    'analyzer' => 'ik_max_word'
-                ],
-                'apptype' => [
-                    'type' => 'integer',
-                ],
-                'update_date' => [
-                    'type' => 'date',
-                    "format"=>"yyyy-MM-dd HH:mm:ss||yyyy-MM-dd||epoch_millis"
-                ],
-                'create_date' => [
-                    'type' => 'date',
-                    "format"=>"yyyy-MM-dd HH:mm:ss||yyyy-MM-dd||epoch_millis"
-                ],
+            ],
+            'boost'=> 10,
+            'analyzer' => 'ik_max_word'
+        ],
+        'apptype' => [
+            'type' => 'integer',
+        ],
+        'update_date' => [
+            'type' => 'date',
+            'format'=>'yyyy-MM-dd HH:mm:ss||yyyy-MM-dd||epoch_millis'
+        ],
+        'create_date' => [
+            'type' => 'date',
+            'format'=>'yyyy-MM-dd HH:mm:ss||yyyy-MM-dd||epoch_millis'
+        ],
 
-                'week_download_count' => [
-                    'type' => 'integer',
-                    'boost'=> 8,
-                ],
-                'month_download_count' => [
-                    'type' => 'integer',
-                    'boost'=> 5,
-                ],
-                'year_download_count' => [
-                    'type' => 'integer',
-                    'boost'=> 2,
-                ],
-                'week_view_count' => [
-                    'type' => 'integer',
-                    'boost'=> 8,
-                ],
-                'month_view_count' => [
-                    'type' => 'integer',
-                    'boost'=> 5,
-                ],
-                'year_view_count' => [
-                    'type' => 'integer',
-                    'boost'=> 2,
-                ],
-                'comment_count' => [
-                    'type' => 'integer',
-                    'boost'=> 5,
-                ],
-                'download_count' => [
-                    'type' => 'integer',
-                    'boost'=> 5,
-                ],
-                'score_count' => [
-                    'type' => 'integer',
-                    'boost'=> 5,
-                ],
-                'look_count' => [
-                    'type' => 'integer',
-                    'boost'=> 5,
-                ],
-                'favorite_count' => [
-                    'type' => 'integer',
-                    'boost'=> 5,
-                ],
-                'share_count' => [
-                    'type' => 'integer',
-                    'boost'=> 5,
-                ],
+        'week_download_count' => [
+            'type' => 'integer',
+            'boost'=> 8,
+        ],
+        'month_download_count' => [
+            'type' => 'integer',
+            'boost'=> 5,
+        ],
+        'year_download_count' => [
+            'type' => 'integer',
+            'boost'=> 2,
+        ],
+        'week_view_count' => [
+            'type' => 'integer',
+            'boost'=> 8,
+        ],
+        'month_view_count' => [
+            'type' => 'integer',
+            'boost'=> 5,
+        ],
+        'year_view_count' => [
+            'type' => 'integer',
+            'boost'=> 2,
+        ],
+        'comment_count' => [
+            'type' => 'integer',
+            'boost'=> 5,
+        ],
+        'download_count' => [
+            'type' => 'integer',
+            'boost'=> 5,
+        ],
+        'score_count' => [
+            'type' => 'integer',
+            'boost'=> 5,
+        ],
+        'look_count' => [
+            'type' => 'integer',
+            'boost'=> 5,
+        ],
+        'favorite_count' => [
+            'type' => 'integer',
+            'boost'=> 5,
+        ],
+        'share_count' => [
+            'type' => 'integer',
+            'boost'=> 5,
+        ],
+    ];
+
+    const TUTUAPP_SEARCH_LOG_PROPS =[
+
     ];
 
     private static $client;
@@ -156,7 +188,7 @@ class Elastic {
         $result = ["status" => true,"message"=>"success","data"=>""];
 
         if(empty($properties)){
-            $properties = self::PROPS;
+            $properties = self::TUTUAPP_IOS_PROPS;
         }
 
         $params = [
@@ -260,7 +292,7 @@ class Elastic {
         $result = ["status" => true,"message"=>"success","data"=>""];
 
         if(empty($properties)){
-            $properties = self::PROPS;
+            $properties = self::TUTUAPP_IOS_PROPS;
         }
 
         $params = [
@@ -457,7 +489,7 @@ class Elastic {
         }
 
         if(empty($queryFileds)){
-            $queryFileds = ["app_name","app_name_we","app_introduction","app_current_newfunction","app_category_first_name","app_category_first_code","app_category_first_id"];
+            $queryFileds = ["app_name","app_name_we","app_introduction","app_current_newfunction","app_category_first_name"];
         }
 
         switch ($queryType){
@@ -575,13 +607,25 @@ class Elastic {
      * @param string $type
      * @return array
      */
-    public function searchHot($lang, $platform='ios', $pages=[]){
+    public function searchHotWord($lang, $platform='ios', $pages=[]){
         $result = array("status" => true,"message"=>"success","data"=>"");
 
-        $index = $this->getIndexName($lang,$platform);
+        $index = self::TUTUAPP_SEARCH_LOG;
+
         $sourceFiled = [];
-        $queryBody = ["match_all" => new \stdClass()];
-        $order = ["searchCount" => ["order"=>"desc"]];
+
+        $queryBody = [
+            "size"=> 0,
+            "aggs"=> [
+                "group_by_queryText"=> [
+                    "terms"=> [
+                        "field"=> "queryText.keyword"
+                    ]
+                ]
+            ]
+        ];
+
+        $order = [];
 
         if(empty($index)){
             $result["status"]=false;
@@ -615,7 +659,7 @@ class Elastic {
 
             $response = $this->getClient()->search($params);
 
-            $result["data"] = $this->dealHitsResponse($response);
+            $result["data"] = $this->dealAggregationResponse($response,'queryText');
 
         } catch (\Exception $e) {
 
@@ -637,23 +681,32 @@ class Elastic {
      * @param string $type
      * @return array
      */
-    public function searchRank($lang, $platform='ios',$appType='app', $pages=[]){
+    public function searchRank($lang, $platform='ios',$type='app', $pages=[]){
         $result = array("status" => true,"message"=>"success","data"=>"");
 
-        $index = $this->getIndexName($lang,$platform);
-
+        $index = "";
         $sourceFiled = [];
+        $queryBody = [];
+        $order = [];
 
-        $queryBody = ["match_all" => new \stdClass()];
+        if($type=="global"){
 
-        $queryBody = ["bool" =>
-            ["must"=>[
-                [ 'match' => [ 'apptype' => $appType=='app'?1:0 ] ]
-            ]
-            ]
-        ];
+        }else{
+            $index = $this->getIndexName($lang,$platform);
 
-        $order = ["downCount" => ["order"=>"desc"]];
+            $sourceFiled = [];
+
+            $queryBody = ["match_all" => new \stdClass()];
+
+            $queryBody = ["bool" =>
+                ["must"=>[
+                    [ 'match' => [ 'apptype' => $type=='app'?1:0 ] ]
+                ]
+                ]
+            ];
+
+            $order = ["download_count" => ["order"=>"desc"]];
+        }
 
         if(empty($index)){
             $result["status"]=false;
@@ -933,4 +986,20 @@ class Elastic {
         }
         return $list;
     }
+
+    /**
+     * 处理聚合格式的响应
+     * @param $response
+     * @param $groupName
+     * @return array
+     */
+    public function dealAggregationResponse($response, $groupName){
+        $list = [];
+        if($response["aggregations"]){
+            $buckets = $response["aggregations"]["group_by_".$groupName]["buckets"];
+
+        }
+        return $list;
+    }
+
 }
