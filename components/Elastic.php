@@ -694,7 +694,7 @@ class Elastic {
         }else{
             $index = $this->getIndexName($lang,$platform);
 
-            $sourceFiled = [];
+            $sourceFiled = ["entity_id","app_name","download_count"];
 
             $queryBody = ["match_all" => new \stdClass()];
 
@@ -760,8 +760,8 @@ class Elastic {
 
         $index = $this->getIndexName($lang,$platform);
 
-        $sourceFiled = [];
-        $queryFileds = ["app_name","app_name_we"];
+        $sourceFiled = ["entity_id","app_name","app_name_we"];
+        $queryFileds = ["app_name","app_name_we","app_name.english","app_name_we.english"];
 
         $queryBody = $this->getQueryBody($queryString,$queryFileds);
 
@@ -818,9 +818,9 @@ class Elastic {
 
         $index = $this->getIndexName($lang,$platform);
 
-        $sourceFiled = [];
+        $sourceFiled = ["entity_id"];
 
-        $queryFileds = ["app_name","app_name_we","app_introduction","app_current_newfunction"];
+        $queryFileds = ["app_name","app_name.english","app_name_we","app_name_we.english","app_introduction","app_introduction.english","app_current_newfunction","app_current_newfunction.english"];
         $queryBody = $this->getQueryBody($key,$queryFileds);
 
         if(empty($index)){
