@@ -148,6 +148,19 @@ class Elastic {
 
     ];
 
+    const TUTUAPP_UPDATE_INFO = [
+//                "indexName":{
+//                    "type":"keyword"
+//                },
+//                "updateNum" : {
+//                    "type": "integer"
+//                },
+//                "updated" : {
+//                    "type" : "date",
+//                    "format": "yyyy-MM-dd HH:mm:ss"
+//                }
+    ];
+
     private static $client;
 
     public function __construct(){
@@ -493,6 +506,11 @@ class Elastic {
         }
 
         switch ($queryType){
+            case 'match_all':
+                $query = [
+                    "match_all"=>new \stdClass(),
+                ];
+                break;
             case 'multi_match':
                 $query = [
                     "multi_match" => [
