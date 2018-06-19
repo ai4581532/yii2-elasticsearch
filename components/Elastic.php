@@ -144,22 +144,6 @@ class Elastic {
         ],
     ];
 
-    const TUTUAPP_SEARCH_LOG_PROPS =[
-
-    ];
-
-    const TUTUAPP_UPDATE_INFO = [
-//                "indexName":{
-//                    "type":"keyword"
-//                },
-//                "updateNum" : {
-//                    "type": "integer"
-//                },
-//                "updated" : {
-//                    "type" : "date",
-//                    "format": "yyyy-MM-dd HH:mm:ss"
-//                }
-    ];
 
     private static $client;
 
@@ -200,8 +184,14 @@ class Elastic {
     public function createIndex($index,$properties=[],$type="_doc"){
         $result = ["status" => true,"message"=>"success","data"=>""];
 
+        if(empty($index)){
+            $result["status"] = false;
+            $result["message"] = "index is empty";
+        }
+
         if(empty($properties)){
-            $properties = self::TUTUAPP_IOS_PROPS;
+            $result["status"] = false;
+            $result["message"] = "properties is empty";
         }
 
         $params = [
@@ -506,11 +496,6 @@ class Elastic {
         }
 
         switch ($queryType){
-            case 'match_all':
-                $query = [
-                    "match_all"=>new \stdClass(),
-                ];
-                break;
             case 'multi_match':
                 $query = [
                     "multi_match" => [
@@ -1020,4 +1005,319 @@ class Elastic {
         return $list;
     }
 
+}
+
+class IndexConstant {
+
+    const TUTUAPP_VIEW_LOG_PROPS=[
+        'appId'=>[
+            'type'=>'integer',
+        ],
+        'dateTime'=>[
+            'type'=>'date'
+        ],
+        'tutuVersion'=>[
+            'type'=>'keyword'
+        ],
+        'tutuBundleId'=>[
+            'type'=>'keyword'
+        ],
+        'userId'=>[
+            'type'=>'keyword'
+        ],
+        'channel'=>[
+            'type'=>'keyword'
+        ],
+        'lang'=>[
+            'type'=>'keyword'
+        ],
+        'platform'=>[
+            'type'=>'keyword'
+        ],
+        'identifier'=>[
+            'type'=>'keyword',
+        ],
+        'deviceType'=>[
+            'type'=>'keyword',
+        ],
+        'deviceMode'=>[
+            'type'=>'keyword',
+        ],
+        'system'=>[
+            'type'=>'keyword',
+        ],
+        'screen'=>[
+            'type'=>'keyword',
+        ],
+        'network'=>[
+            'type'=>'keyword',
+        ],
+        'ip'=>[
+            'type'=>'keyword',
+        ],
+        'countryCode'=>[
+            'type'=>'keyword',
+        ],
+        'countryName'=>[
+            'type'=>'keyword',
+        ],
+        'region'=>[
+            'type'=>'keyword',
+        ],
+        'city'=>[
+            'type'=>'keyword',
+        ]
+    ];
+
+    const TUTUAPP_DOWNLOAD_LOG_PROPS=[
+        'appId'=>[
+            'type'=>'integer',
+        ],
+        'dateTime'=>[
+            'type'=>'date'
+        ],
+        'tutuVersion'=>[
+            'type'=>'keyword'
+        ],
+        'tutuBundleId'=>[
+            'type'=>'keyword'
+        ],
+        'userId'=>[
+            'type'=>'keyword'
+        ],
+        'channel'=>[
+            'type'=>'keyword'
+        ],
+        'lang'=>[
+            'type'=>'keyword'
+        ],
+        'platform'=>[
+            'type'=>'keyword'
+        ],
+        'identifier'=>[
+            'type'=>'keyword',
+        ],
+        'deviceType'=>[
+            'type'=>'keyword',
+        ],
+        'deviceMode'=>[
+            'type'=>'keyword',
+        ],
+        'system'=>[
+            'type'=>'keyword',
+        ],
+        'screen'=>[
+            'type'=>'keyword',
+        ],
+        'network'=>[
+            'type'=>'keyword',
+        ],
+        'ip'=>[
+            'type'=>'keyword',
+        ],
+        'countryCode'=>[
+            'type'=>'keyword',
+        ],
+        'countryName'=>[
+            'type'=>'keyword',
+        ],
+        'region'=>[
+            'type'=>'keyword',
+        ],
+        'city'=>[
+            'type'=>'keyword',
+        ]
+    ];
+
+    const TUTUAPP_INSTALL_LOG_PROPS=[
+        'appId'=>[
+            'type'=>'integer',
+        ],
+        'dateTime'=>[
+            'type'=>'date'
+        ],
+        'tutuVersion'=>[
+            'type'=>'keyword'
+        ],
+        'tutuBundleId'=>[
+            'type'=>'keyword'
+        ],
+        'userId'=>[
+            'type'=>'keyword'
+        ],
+        'channel'=>[
+            'type'=>'keyword'
+        ],
+        'lang'=>[
+            'type'=>'keyword'
+        ],
+        'platform'=>[
+            'type'=>'keyword'
+        ],
+        'identifier'=>[
+            'type'=>'keyword',
+        ],
+        'deviceType'=>[
+            'type'=>'keyword',
+        ],
+        'deviceMode'=>[
+            'type'=>'keyword',
+        ],
+        'system'=>[
+            'type'=>'keyword',
+        ],
+        'screen'=>[
+            'type'=>'keyword',
+        ],
+        'network'=>[
+            'type'=>'keyword',
+        ],
+        'ip'=>[
+            'type'=>'keyword',
+        ],
+        'countryCode'=>[
+            'type'=>'keyword',
+        ],
+        'countryName'=>[
+            'type'=>'keyword',
+        ],
+        'region'=>[
+            'type'=>'keyword',
+        ],
+        'city'=>[
+            'type'=>'keyword',
+        ]
+    ];
+
+    const TUTUAPP_SHARE_LOG_PROPS=[
+        'appId'=>[
+            'type'=>'integer',
+        ],
+        'shareTo'=>[
+            'type'=>'keyword',
+        ],
+        'dateTime'=>[
+            'type'=>'date'
+        ],
+        'tutuVersion'=>[
+            'type'=>'keyword'
+        ],
+        'tutuBundleId'=>[
+            'type'=>'keyword'
+        ],
+        'userId'=>[
+            'type'=>'keyword'
+        ],
+        'channel'=>[
+            'type'=>'keyword'
+        ],
+        'lang'=>[
+            'type'=>'keyword'
+        ],
+        'platform'=>[
+            'type'=>'keyword'
+        ],
+        'identifier'=>[
+            'type'=>'keyword',
+        ],
+        'deviceType'=>[
+            'type'=>'keyword',
+        ],
+        'deviceMode'=>[
+            'type'=>'keyword',
+        ],
+        'system'=>[
+            'type'=>'keyword',
+        ],
+        'screen'=>[
+            'type'=>'keyword',
+        ],
+        'network'=>[
+            'type'=>'keyword',
+        ],
+        'ip'=>[
+            'type'=>'keyword',
+        ],
+        'countryCode'=>[
+            'type'=>'keyword',
+        ],
+        'countryName'=>[
+            'type'=>'keyword',
+        ],
+        'region'=>[
+            'type'=>'keyword',
+        ],
+        'city'=>[
+            'type'=>'keyword',
+        ]
+    ];
+
+    const TUTUAPP_SEARCH_LOG_PROPS=[
+        'queryText'=>[
+            'type'=>'keyword',
+        ],
+        'resultNum'=>[
+            'type'=>'integer'
+        ],
+        'pages'=>[
+
+        ],
+        'clickApp'=>[
+
+        ],
+        'dateTime'=>[
+            'type'=>'date'
+        ],
+        'tutuVersion'=>[
+            'type'=>'keyword'
+        ],
+        'tutuBundleId'=>[
+            'type'=>'keyword'
+        ],
+        'userId'=>[
+            'type'=>'keyword'
+        ],
+        'channel'=>[
+            'type'=>'keyword'
+        ],
+        'lang'=>[
+            'type'=>'keyword'
+        ],
+        'platform'=>[
+            'type'=>'keyword'
+        ],
+        'identifier'=>[
+            'type'=>'keyword',
+        ],
+        'deviceType'=>[
+            'type'=>'keyword',
+        ],
+        'deviceMode'=>[
+            'type'=>'keyword',
+        ],
+        'system'=>[
+            'type'=>'keyword',
+        ],
+        'screen'=>[
+            'type'=>'keyword',
+        ],
+        'network'=>[
+            'type'=>'keyword',
+        ],
+        'ip'=>[
+            'type'=>'keyword',
+        ],
+        'countryCode'=>[
+            'type'=>'keyword',
+        ],
+        'countryName'=>[
+            'type'=>'keyword',
+        ],
+        'region'=>[
+            'type'=>'keyword',
+        ],
+        'city'=>[
+            'type'=>'keyword',
+        ]
+    ];
 }
