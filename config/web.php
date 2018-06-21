@@ -46,7 +46,7 @@ $config = [
         ],
         
         'db' => $db,
-        
+        'db2' => $db,
         /*
         'urlManager' => [
             'enablePrettyUrl' => true,
