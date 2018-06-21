@@ -43,7 +43,7 @@ class BatchIndexDataController extends Controller
 
             $sqlCount = "SELECT  count(id)  FROM app_ios_flat a  WHERE 1=1 ".$condition;
 
-            $sql = "SELECT a.entity_id,a.app_name,a.app_category_first_name,a.app_category_first_code,a.app_category_first_id,a.app_introduction,a.app_current_newfunction,a.app_name_we,a.update_date,a.create_date
+            $sql = "SELECT a.entity_id,a.app_name,a.app_category_first_name,a.app_category_first_code,a.app_category_first_id,a.app_category_name,a.app_category_code,a.app_category_id,a.app_introduction,a.app_current_newfunction,a.app_name_we,a.update_date,a.create_date
                 FROM app_ios_flat a 
                 WHERE 1=1 ".$condition." order by a.id limit :limit offset :offset  ";
 
@@ -108,32 +108,33 @@ class BatchIndexDataController extends Controller
                 //return  json_encode($apps);
 
                 //$elastic->batchIndexData($apps,$fileds);
-
-
+ 
                 $params = ['body' => []];
-                $index = "tutuapp-ios-zh";
-
+                $indexName = "tutuapp-ios-zh";echo "ok";
+ 
                 foreach ($apps as $i => $app) {
+					 
                     $params['body'][] = [
                         'index' => [
-                            '_index' => $index,
+                            '_index' => "tutuapp-ios-zh",
                             '_type' => '_doc',
                             '_id' => $app["entity_id"]
                         ]
                     ];
-
+					 
                     $bodyArray = [];
                     foreach ($fileds as $filed) {
+						 
                         $bodyArray[$filed] = $app[$filed];
                     }
-
+ 
                     $params['body'][] = $bodyArray;
                 }
-
+ 
                 //return json_encode($params);
 
                 $elastic->bulkDocument($params);
-
+ 
                 //return  json_encode($response);
             }
 
