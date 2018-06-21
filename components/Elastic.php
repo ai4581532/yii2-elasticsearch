@@ -150,7 +150,6 @@ class Elastic {
     public function __construct(){
 
         $esParam = Yii::$app->params['elastic'];
-
         self::$client = ClientBuilder::fromConfig($esParam);
     }
 
@@ -162,6 +161,14 @@ class Elastic {
         return self::$client;
     }
 
+//    public static function getClient(){
+//        if(empty(self::$client)){
+//            $esParam = Yii::$app->params['elastic'];
+//            self::$client = ClientBuilder::fromConfig($esParam);
+//        }
+//        return self::$client;
+//    }
+
     public function getIndexName($lang,$platform){
         switch($lang){
             case "zh":
@@ -171,10 +178,10 @@ class Elastic {
                 return self::TUTUAPP_IOS_ZH;
                 break;
             case "en":
-                return self::TUTUAPP_IOS_EN;
+                return self::TUTUAPP_IOS_ZH;
                 breack;
             default:
-                return self::TUTUAPP_IOS_EN;
+                return self::TUTUAPP_IOS_ZH;
         }
     }
 
@@ -487,15 +494,21 @@ class Elastic {
     public function getQueryBody($queryString,$queryFileds=[],$queryType="simple_query_string"){
         $query =[];
 
-        if(empty($queryString)){
+        if(empty($queryString)&&$queryType!="match_all"){
             return null;
         }
 
         if(empty($queryFileds)){
-            $queryFileds = ["app_name","app_name_we","app_introduction","app_current_newfunction","app_category_first_name"];
+            $queryFileds = ["app_name","app_name_we","app_introduction","app_current_newfunction",
+                "app_name.english","app_name_we.english","app_introduction.english","app_current_newfunction.english",];
         }
 
         switch ($queryType){
+            case 'match_all':
+                $query = [
+                    "match_all"=>new \stdClass(),
+                ];
+                break;
             case 'multi_match':
                 $query = [
                     "multi_match" => [
@@ -556,7 +569,7 @@ class Elastic {
         }
 
         if(empty($pages)){
-            $pages["page"] = 0;
+            $pages["page"] = 1;
             $pages["pageCount"] = 10;
         }
 
@@ -568,7 +581,7 @@ class Elastic {
 
                 "_source"=>$sourceFiled,
 
-                "from"=>$pages["page"],
+                "from"=>$pages["page"]-1,
 
                 "size"=>$pages["pageCount"],
 
@@ -618,7 +631,7 @@ class Elastic {
         $sourceFiled = [];
 
         $queryBody = [
-            "size"=> 0,
+            "size"=> 1,
             "aggs"=> [
                 "group_by_queryText"=> [
                     "terms"=> [
@@ -637,7 +650,7 @@ class Elastic {
         }
 
         if(empty($pages)){
-            $pages["page"] = 0;
+            $pages["page"] = 1;
             $pages["pageCount"] = 10;
         }
 
@@ -649,7 +662,7 @@ class Elastic {
 
                 "_source"=>$sourceFiled,
 
-                "from"=>$pages["page"],
+                "from"=>$pages["page"]-1,
 
                 "size"=>$pages["pageCount"],
 
@@ -718,7 +731,7 @@ class Elastic {
         }
 
         if(empty($pages)){
-            $pages["page"] = 0;
+            $pages["page"] = 1;
             $pages["pageCount"] = 10;
         }
 
@@ -730,7 +743,7 @@ class Elastic {
 
                 "_source"=>$sourceFiled,
 
-                "from"=>$pages["page"],
+                "from"=>$pages["page"]-1,
 
                 "size"=>$pages["pageCount"],
 
@@ -775,7 +788,7 @@ class Elastic {
         }
 
         if(empty($pages)){
-            $pages["page"] = 0;
+            $pages["page"] = 1;
             $pages["pageCount"] = 10;
         }
 
@@ -787,7 +800,7 @@ class Elastic {
 
                 "_source"=>$sourceFiled,
 
-                "from"=>$pages["page"],
+                "from"=>$pages["page"]-1,
 
                 "size"=>$pages["pageCount"],
 
@@ -833,7 +846,7 @@ class Elastic {
         }
 
         if(empty($pages)){
-            $pages["page"] = 0;
+            $pages["page"] = 1;
             $pages["pageCount"] = 10;
         }
 
@@ -845,7 +858,7 @@ class Elastic {
 
                 "_source"=>$sourceFiled,
 
-                "from"=>$pages["page"],
+                "from"=>$pages["page"]-1,
 
                 "size"=>$pages["pageCount"],
 
@@ -857,7 +870,86 @@ class Elastic {
         try {
             $response = $this->getClient()->search($params);
 
-            $result["data"] = $this->dealHitsResponse($response);
+            $result["data"]=[
+                "dataList" => $this->dealHitsResponse($response),
+                "pageInfo"=>[
+                    "totalPage"=>ceil($response["hits"]["total"]/$pages["pageCount"]),
+                    "page"=>$pages["page"]
+                ]
+            ];
+
+            //return $response;
+
+        } catch (\Exception $e) {
+
+            $result["status"]=false;
+
+            $result["message"]=json_decode($e->getMessage());
+
+        }
+
+        return $result;
+    }
+
+    public function searchMoreRelatedApp($appId, $appName, $lang, $platform="ios", $pages=[], $order=[]){
+        $result = ["status" => true,"message"=>"success","data"=>""];
+
+        $type='_doc';
+
+        $index = $this->getIndexName($lang,$platform);
+
+        $sourceFiled = ["entity_id"];
+
+        $queryFileds = ["app_name","app_name.english","app_name_we","app_name_we.english","app_introduction","app_introduction.english","app_current_newfunction","app_current_newfunction.english"];
+        $queryBody = $this->getQueryBody($appName,$queryFileds);
+
+        if(empty($index)){
+            $result["status"]=false;
+            $result["message"]="param index is null!";
+            return $result;
+        }
+
+        if(empty($pages)){
+            $pages["page"] = 1;
+            $pages["pageCount"] = 8;
+        }
+
+        if(empty($order)){
+            $order = ["download_count" => ["order"=>"desc"],"_score" => ["order"=>"desc"]];
+        }
+
+        $params = [
+            'index' => $index,
+            'type' => $type,
+            'body' => [
+                'query' => $queryBody,
+
+                "_source"=>$sourceFiled,
+
+                "from"=>$pages["page"]-1,
+
+                "size"=>$pages["pageCount"],
+
+                'sort'=>$order
+
+            ]
+        ];
+        //return $params;
+        try {
+            $response = $this->getClient()->search($params);
+
+            $list = $this->dealHitsResponse($response);
+
+            $entityIdList = [];
+            foreach ($list as $index=>$one){
+                if($one["entity_id"]==$appId){
+                    continue;
+                }
+                $entityIdList[]=$one["entity_id"];
+            }
+
+            $result["data"]= $entityIdList;
+
 
             //return $response;
 
@@ -884,10 +976,9 @@ class Elastic {
         $result = ["status" => true,"message"=>"success","data"=>""];
 
         $type='_doc';
-
         $index = $this->getIndexName($lang,$platform);
 
-        $sourceFiled = [];
+        $sourceFiled = ["entity_id"];
 
         $queryBody = ["bool" =>
             ["must"=>[
@@ -903,7 +994,7 @@ class Elastic {
         }
 
         if(empty($pages)){
-            $pages["page"] = 0;
+            $pages["page"] = 1;
             $pages["pageCount"] = 10;
         }
 
@@ -915,7 +1006,7 @@ class Elastic {
 
                 "_source"=>$sourceFiled,
 
-                "from"=>$pages["page"],
+                "from"=>$pages["page"]-1,
 
                 "size"=>$pages["pageCount"],
 
