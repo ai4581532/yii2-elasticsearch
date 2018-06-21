@@ -110,7 +110,7 @@ class BatchIndexDataController extends Controller
                 //$elastic->batchIndexData($apps,$fileds);
  
                 $params = ['body' => []];
-                $indexName = "tutuapp-ios-zh";echo "ok";
+                $indexName = "tutuapp-ios-zh"; 
  
                 foreach ($apps as $i => $app) {
 					 
