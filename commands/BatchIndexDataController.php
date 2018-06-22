@@ -25,21 +25,42 @@ class BatchIndexDataController extends Controller
      * @param string $message the message to be echoed.
      * @return int Exit code
      */
-    public function actionInitData($createDate=null){
+    public function actionInitData($startCreateDate=null, $endCreateDate=null){
         try {
             $elastic = new Elastic();
-            //echo "ok";
             $fileds = array_keys(IndexConstant::TUTUAPP_IOS_PROPS);
-            //echo "ok";
-            //return  json_encode($fileds);
-
-            //查询上线显示的app
-            //$query = AppIosFlat::find()->select($fileds)->where(["is_show"=>"y","is_delete"=>"n"]);
 
             $condition = "AND a.is_show='y' AND a.is_delete='n'";
-            if($createDate){
-                $condition.="AND a.create_date>'{$createDate}' ";
+
+            if(empty($startCreateDate)){
+                //开始时间为空，则获取上次的截止时间
+                $queryBody =$elastic->getQueryBody(null,[],"match_all");
+                $order = ["created" => ["order"=>"desc"]];
+
+                $res = $elastic->search($queryBody, "tutuapp_create_info", "_doc", [], [], $order);
+                $lastCreated = $res["data"][0];
+                if($lastCreated){
+                    $startCreateDate = $lastCreated["created"];
+                }else{
+                    $startCreateDate = '2000-01-01 00:00:00';
+                }
+
             }
+
+            if($startCreateDate){
+                $condition.="AND a.create_date>'{$startCreateDate}' ";
+            }
+
+            //如果没有设置截止时间，则设置为当前时间
+            if(empty($endCreateDate)){
+                $endCreateDate = date("Y-m-d H-m-s");
+            }
+
+            if($endCreateDate){
+                $condition.="AND a.create_date<'{$endCreateDate}' ";
+            }
+
+            //echo $condition;return ExitCode::OK;
 
             $sqlCount = "SELECT  count(id)  FROM app_ios_flat a  WHERE 1=1 ".$condition;
 
@@ -108,39 +129,37 @@ class BatchIndexDataController extends Controller
                 //return  json_encode($apps);
 
                 //$elastic->batchIndexData($apps,$fileds);
- 
+
                 $params = ['body' => []];
-                $indexName = "tutuapp-ios-zh"; 
- 
+
                 foreach ($apps as $i => $app) {
-					 
+
                     $params['body'][] = [
                         'index' => [
-                            '_index' => "tutuapp-ios-zh",
+                            '_index' => IndexConstant::TUTUAPP_IOS_ZH,
                             '_type' => '_doc',
                             '_id' => $app["entity_id"]
                         ]
                     ];
-					 
+
                     $bodyArray = [];
                     foreach ($fileds as $filed) {
-						 
+
                         $bodyArray[$filed] = $app[$filed];
                     }
- 
+
                     $params['body'][] = $bodyArray;
                 }
- 
+
                 //return json_encode($params);
 
                 $elastic->bulkDocument($params);
- 
+
                 //return  json_encode($response);
             }
 
-            $update = date("Y-m-d H:i:s");
-            $body = [ 'indexName' => 'tutuapp-update-info','updateNum'=>$count,'updated'=>$update];
-            $response = $elastic->createDocument('tutuapp-update-info', null, $body);
+            $body = [ 'indexName' => 'tutuapp_create_info','createdNum'=>$count,'created'=>$endCreateDate];
+            $response = $elastic->createDocument('tutuapp_update_info', null, $body);
 
             return ExitCode::OK;
 
@@ -161,10 +180,9 @@ class BatchIndexDataController extends Controller
         $elastic = new Elastic();
         //var_dump($elastic->getClient());
         $fileds = array_keys(IndexConstant::TUTUAPP_IOS_PROPS);
-        $queryBody =$elastic->getQueryBody(null,[],"match_all");
-        //var_dump($queryBody);
 
-        $index = "tutuapp-update-info";
+        $queryBody =$elastic->getQueryBody(null,[],"match_all");
+        $index = "tutuapp_update_info";
         $type ="_doc";
         $order = ["updated" => ["order"=>"desc"]];
 
@@ -174,8 +192,9 @@ class BatchIndexDataController extends Controller
         //根据上次的扫描时间，获取之后更新过的应用
         //批量更新索引数据
         //var_dump($lastUpdate);
-
-        $updateDate = $lastUpdate["updated"];
+        if($lastUpdate){
+            $updateDate = $lastUpdate["updated"];
+        }
 
         if(empty($updateDate)){
             return ExitCode::OK;
@@ -278,8 +297,8 @@ class BatchIndexDataController extends Controller
 
         }
 
-        $body = [ 'indexName' => 'tutuapp-update-info','updateNum'=>$count,'updated'=>$maxUpdate];
-        $response = $elastic->createDocument('tutuapp-update-info', null, $body);
+        $body = [ 'indexName' => 'tutuapp_update_info','updatedNum'=>$count,'updated'=>$maxUpdate];
+        $response = $elastic->createDocument('tutuapp_update_info', null, $body);
 
         return ExitCode::OK;
     }

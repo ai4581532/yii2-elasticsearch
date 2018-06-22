@@ -2,6 +2,7 @@
 namespace app\controllers;
 
 use app\components\Elastic;
+use app\components\IndexConstant;
 use yii\web\Controller;
 use app\models\AppIosFlat;
 use yii\data\Pagination;
@@ -13,7 +14,7 @@ class ElasticController extends Controller{
         
         $elastic = new Elastic();
         
-        $index = "tutuapp-ios-zh";
+        $index = IndexConstant::TUTUAPP_IOS_ZH;
         
         $response = $elastic->getIndex($index);
 
@@ -23,7 +24,7 @@ class ElasticController extends Controller{
     public function actionCreateindex(){
         $elastic = new Elastic();
 
-        $index = "tutuapp-ios-zh";
+        $index = IndexConstant::TUTUAPP_IOS_ZH;
 
         $response = $elastic->createIndex($index);
 
@@ -33,7 +34,7 @@ class ElasticController extends Controller{
     public function actionDeleteindex(){
         $elastic = new Elastic();
 
-        $index = "tutuapp-ios-zh";
+        $index = IndexConstant::TUTUAPP_IOS_ZH;
 
         $response = $elastic->deleteIndex($index);
 
@@ -43,7 +44,7 @@ class ElasticController extends Controller{
     public function actionGetindexmapping(){
         $elastic = new Elastic();
         
-        $index = "tutuapp-ios-zh";
+        $index = IndexConstant::TUTUAPP_IOS_ZH;
         
         $response = $elastic->getIndexMapping($index);
         
@@ -53,7 +54,7 @@ class ElasticController extends Controller{
     public function actionSetindexmapping(){
         $elastic = new Elastic();
         
-        $index = "tutuapp-ios-zh";
+        $index = IndexConstant::TUTUAPP_IOS_ZH;
         
         $properties =[];
         
@@ -65,7 +66,7 @@ class ElasticController extends Controller{
     public function actionSearch(){
         $elastic = new Elastic();
         
-        $index = "tutuapp-ios-zh";
+        $index = IndexConstant::TUTUAPP_IOS_ZH;
         
         $queryString = "doe";
         
@@ -170,7 +171,7 @@ class ElasticController extends Controller{
 
 
                 $params = ['body' => []];
-                $index = "tutuapp-ios-zh";
+                $index = IndexConstant::TUTUAPP_IOS_ZH;
 
                 foreach ($apps as $i => $app){
                     $params['body'][] = [

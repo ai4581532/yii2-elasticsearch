@@ -985,18 +985,18 @@ class Elastic {
 
 class IndexConstant {
 
-    const TUTUAPP_IOS_ZH = "tutuapp-ios-zh";
-    const TUTUAPP_IOS_ZH_TW = "tutuapp-ios-zh-tw";
-    const TUTUAPP_IOS_EN = "tutuapp-ios-en";
-    const TUTUAPP_IOS_KO = "tutuapp-ios-ko";
-    const TUTUAPP_IOS_AR = "tutuapp-ios-ar";
-    const TUTUAPP_IOS_JA = "tutuapp-ios-ja";
+    const TUTUAPP_IOS_ZH = "tutuapp_ios_zh";
+    const TUTUAPP_IOS_ZH_TW = "tutuapp_ios_zh_tw";
+    const TUTUAPP_IOS_EN = "tutuapp_ios_en";
+    const TUTUAPP_IOS_KO = "tutuapp_ios_ko";
+    const TUTUAPP_IOS_AR = "tutuapp_ios_ar";
+    const TUTUAPP_IOS_JA = "tutuapp_ios_ja";
 
-    const TUTUAPP_SEARCH_LOG = "tutuapp-search-log";
-    const TUTUAPP_VIEW_LOG = "tutuapp-view-log";
-    const TUTUAPP_DOWNLOAD_LOG = "tutuapp-download-log";
-    const TUTUAPP_INSTALL_LOG = "tutuapp-install-log";
-    const TUTUAPP_SHARE_LOG = "tutuapp-share-log";
+    const TUTUAPP_SEARCH_LOG = "tutuapp_search_log";
+    const TUTUAPP_VIEW_LOG = "tutuapp_view_log";
+    const TUTUAPP_DOWNLOAD_LOG = "tutuapp_download_log";
+    const TUTUAPP_INSTALL_LOG = "tutuapp_install_log";
+    const TUTUAPP_SHARE_LOG = "tutuapp_share_log";
 
     const TUTUAPP_IOS_PROPS = [
         'entity_id' => [
