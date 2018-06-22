@@ -199,7 +199,7 @@ class BatchIndexDataController extends Controller
 
         $sqlCount = "SELECT  count(id)  FROM app_ios_flat a  WHERE 1=1 ".$condition;
 
-        $sql = "SELECT a.entity_id,a.app_name,a.app_category_first_name,a.app_category_first_code,a.app_category_first_id,a.app_introduction,a.app_current_newfunction,a.app_name_we,a.update_date,a.create_date
+        $sql = "SELECT a.entity_id,a.app_name,a.app_category_first_name,a.app_category_first_code,a.app_category_first_id,a.app_category_name,a.app_category_code,a.app_category_id,a.app_introduction,a.app_current_newfunction,a.app_name_we,a.update_date,a.create_date
                 FROM app_ios_flat a 
                 WHERE 1=1 ".$condition." order by a.id limit :limit offset :offset  ";
 
