@@ -997,6 +997,7 @@ class IndexConstant {
     const TUTUAPP_DOWNLOAD_LOG = "tutuapp_download_log";
     const TUTUAPP_INSTALL_LOG = "tutuapp_install_log";
     const TUTUAPP_SHARE_LOG = "tutuapp_share_log";
+    const TUTUAPP_DAY_LOG = "tutuapp_day_log";
 
     const TUTUAPP_IOS_PROPS = [
         'entity_id' => [
@@ -1448,4 +1449,26 @@ class IndexConstant {
             'type'=>'keyword',
         ]
     ];
+
+    const TUTUAPP_DAY_LOG_PROPS = [
+        'appId'=> [
+            'type'=>'integer',
+        ],
+        'viewCount'=>[
+            'type'=>'integer',
+        ],
+        'downloadCount'=>[
+            'type'=>'integer',
+        ],
+        'installCount'=>[
+            'type'=>'integer',
+        ],
+        'shareCount'=>[
+            'type'=>'integer',
+        ],
+        'reportDate'=>[
+            'type'=>'date',
+        ],
+    ];
+
 }
