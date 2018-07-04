@@ -484,7 +484,7 @@ class Elastic {
 
                 "_source"=>$sourceFiled,
 
-                "from"=>$pages["page"]-1,
+                "from"=>($pages["page"]-1)*$pages["pageCount"],
 
                 "size"=>$pages["pageCount"],
 
@@ -537,7 +537,7 @@ class Elastic {
 
                 "_source"=>$sourceFiled,
 
-                //"from"=>$pages["page"]-1,
+                //"from"=>($pages["page"]-1)*$pages["pageCount"],
 
                 //"size"=>$pages["pageCount"],
 
@@ -618,7 +618,7 @@ class Elastic {
 
                 "_source"=>$sourceFiled,
 
-                "from"=>$pages["page"]-1,
+                "from"=>($pages["page"]-1)*$pages["pageCount"],
 
                 "size"=>$pages["pageCount"],
 
@@ -674,7 +674,7 @@ class Elastic {
             if(!empty($type)){
                 $queryBody = ["bool" =>
                     ["must"=>[
-                        [ 'match' => [ 'apptype' => $type=='app'?1:0 ] ]
+                        [ 'match' => [ 'apptype' => $type=='app'?1:2 ] ]
                     ]
                     ]
                 ];
@@ -702,7 +702,7 @@ class Elastic {
 
                 "_source"=>$sourceFiled,
 
-                "from"=>$pages["page"]-1,
+                "from"=>($pages["page"]-1)*$pages["pageCount"],
 
                 "size"=>$pages["pageCount"],
 
@@ -759,7 +759,7 @@ class Elastic {
 
                 "_source"=>$sourceFiled,
 
-                "from"=>$pages["page"]-1,
+                "from"=>($pages["page"]-1)*$pages["pageCount"],
 
                 "size"=>$pages["pageCount"],
 
@@ -885,7 +885,7 @@ class Elastic {
 
                 "_source"=>$sourceFiled,
 
-                "from"=>$pages["page"]-1,
+                "from"=>($pages["page"]-1)*$pages["pageCount"],
 
                 "size"=>$pages["pageCount"],
 
@@ -976,7 +976,7 @@ class Elastic {
 
                 "_source"=>$sourceFiled,
 
-                "from"=>$pages["page"]-1,
+                "from"=>($pages["page"]-1)*$pages["pageCount"],
 
                 "size"=>$pages["pageCount"],
 
