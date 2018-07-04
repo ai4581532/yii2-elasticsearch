@@ -413,6 +413,38 @@ class Elastic {
         return $query;
     }
 
+    public function getQueryParams($index,$body,$type='_doc'){
+        $params = [
+            'index' => $index,
+            'type' => $type,
+            'body' => $body
+        ];
+        return $params;
+    }
+
+    public function getAggBody($aggName,$field,$size,$filter){
+        $body = [
+            'size'=>0,
+            'query'=>[
+                'bool'=>[
+                    'must'=>[
+                        "match_all"=>new \stdClass(),
+                    ],
+                    'filter'=>$filter
+                ]
+            ],
+            'aggs'=> [
+                $aggName=>[
+                    'terms'=>[
+                        'field'=>$field,
+                        'size'=>$size
+                    ]
+                ]
+            ]
+        ];
+        return $body;
+    }
+
     /**
      * 搜索
      *
@@ -455,6 +487,59 @@ class Elastic {
                 "from"=>$pages["page"]-1,
 
                 "size"=>$pages["pageCount"],
+
+                'sort'=>$order
+
+            ]
+        ];
+
+        try {
+
+            $response = $this->getClient()->search($params);
+
+            $result["data"] = $this->dealHitsResponse($response);
+
+        } catch (\Exception $e) {
+
+            $result["status"]=false;
+
+            $result["message"]=$e->getMessage();
+
+        }
+
+        return $result;
+
+    }
+
+    public function searchAll($index, $type='_doc', $sourceFiled=[], $order=[]){
+        $result = ["status" => true,"message"=>"success","data"=>""];
+
+        $queryBody = [
+            "match_all"=>new \stdClass(),
+        ];
+
+        if(empty($index)){
+            $result["status"]=false;
+            $result["message"]="param index is null!";
+            return $result;
+        }
+
+//        if(empty($pages)){
+//            $pages["page"] = 1;
+//            $pages["pageCount"] = 10;
+//        }
+
+        $params = [
+            'index' => $index,
+            'type' => $type,
+            'body' => [
+                'query' => $queryBody,
+
+                "_source"=>$sourceFiled,
+
+                //"from"=>$pages["page"]-1,
+
+                //"size"=>$pages["pageCount"],
 
                 'sort'=>$order
 
@@ -546,7 +631,7 @@ class Elastic {
 
             $response = $this->getClient()->search($params);
 
-            $result["data"] = $this->dealAggregationResponse($response,'queryText');
+            $result["data"] = $this->dealAggregationResponse($response,'group_by_queryText');
 
         } catch (\Exception $e) {
 
@@ -972,10 +1057,10 @@ class Elastic {
      * @param $groupName
      * @return array
      */
-    public function dealAggregationResponse($response, $groupName){
+    public function dealAggregationResponse($response, $aggName){
         $list = [];
         if($response["aggregations"]){
-            $buckets = $response["aggregations"]["group_by_".$groupName]["buckets"];
+            $buckets = $response["aggregations"][$aggName]["buckets"];
             $list = $buckets;
         }
         return $list;
@@ -1143,7 +1228,8 @@ class IndexConstant {
             'type'=>'integer',
         ],
         'dateTime'=>[
-            'type'=>'date'
+            'type'=>'date',
+            'format'=>'yyyy-MM-dd HH:mm:ss||yyyy-MM-dd||epoch_millis'
         ],
         'tutuVersion'=>[
             'type'=>'keyword'
@@ -1151,7 +1237,7 @@ class IndexConstant {
         'tutuBundleId'=>[
             'type'=>'keyword'
         ],
-        'userId'=>[
+        'tutuUid'=>[
             'type'=>'keyword'
         ],
         'channel'=>[
@@ -1203,7 +1289,8 @@ class IndexConstant {
             'type'=>'integer',
         ],
         'dateTime'=>[
-            'type'=>'date'
+            'type'=>'date',
+            'format'=>'yyyy-MM-dd HH:mm:ss||yyyy-MM-dd||epoch_millis'
         ],
         'tutuVersion'=>[
             'type'=>'keyword'
@@ -1211,7 +1298,7 @@ class IndexConstant {
         'tutuBundleId'=>[
             'type'=>'keyword'
         ],
-        'userId'=>[
+        'tutuUid'=>[
             'type'=>'keyword'
         ],
         'channel'=>[
@@ -1263,7 +1350,8 @@ class IndexConstant {
             'type'=>'integer',
         ],
         'dateTime'=>[
-            'type'=>'date'
+            'type'=>'date',
+            'format'=>'yyyy-MM-dd HH:mm:ss||yyyy-MM-dd||epoch_millis'
         ],
         'tutuVersion'=>[
             'type'=>'keyword'
@@ -1271,7 +1359,7 @@ class IndexConstant {
         'tutuBundleId'=>[
             'type'=>'keyword'
         ],
-        'userId'=>[
+        'tutuUid'=>[
             'type'=>'keyword'
         ],
         'channel'=>[
@@ -1326,7 +1414,8 @@ class IndexConstant {
             'type'=>'keyword',
         ],
         'dateTime'=>[
-            'type'=>'date'
+            'type'=>'date',
+            'format'=>'yyyy-MM-dd HH:mm:ss||yyyy-MM-dd||epoch_millis'
         ],
         'tutuVersion'=>[
             'type'=>'keyword'
@@ -1334,7 +1423,7 @@ class IndexConstant {
         'tutuBundleId'=>[
             'type'=>'keyword'
         ],
-        'userId'=>[
+        'tutuUid'=>[
             'type'=>'keyword'
         ],
         'channel'=>[
@@ -1395,7 +1484,8 @@ class IndexConstant {
 
         ],
         'dateTime'=>[
-            'type'=>'date'
+            'type'=>'date',
+            'format'=>'yyyy-MM-dd HH:mm:ss||yyyy-MM-dd||epoch_millis'
         ],
         'tutuVersion'=>[
             'type'=>'keyword'
@@ -1403,7 +1493,7 @@ class IndexConstant {
         'tutuBundleId'=>[
             'type'=>'keyword'
         ],
-        'userId'=>[
+        'tutuUid'=>[
             'type'=>'keyword'
         ],
         'channel'=>[
@@ -1468,6 +1558,25 @@ class IndexConstant {
         ],
         'reportDate'=>[
             'type'=>'date',
+            'format'=>'yyyy-MM-dd HH:mm:ss||yyyy-MM-dd||epoch_millis'
+        ],
+    ];
+
+    const TUTUAPP_SEARCH_DAY_LOG_PROPS = [
+        'queryText'=>[
+            'type'=>'text',
+            'fields'=> [
+                'keyword'=>[
+                    'type'=> 'keyword'
+                ],
+            ]
+        ],
+        'searchCount'=>[
+            'type'=>'integer',
+        ],
+        'reportDate'=>[
+            'type'=>'date',
+            'format'=>'yyyy-MM-dd HH:mm:ss||yyyy-MM-dd||epoch_millis'
         ],
     ];
 
