@@ -41,7 +41,7 @@ class BatchIndexDataController extends Controller
                 $apps[$index] = $app;
             }
 
-            $this->batchCreateDocument($apps,$indexName);
+            $this->batchCreateDocument($apps,$indexName,$elastic);
             $tempEntityId+=$size;
         };
 
@@ -183,8 +183,8 @@ class BatchIndexDataController extends Controller
         return $app;
     }
 
-    public function batchCreateDocument($apps,$index = "tutuapp-ios-zh"){
-        $elastic = new Elastic();
+    public function batchCreateDocument($apps,$index = "tutuapp-ios-zh",$elastic=null){
+        //$elastic = new Elastic();
 
         $fileds = array_keys(IndexConstant::TUTUAPP_IOS_PROPS);
 
