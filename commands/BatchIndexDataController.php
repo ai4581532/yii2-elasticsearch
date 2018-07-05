@@ -25,24 +25,31 @@ class BatchIndexDataController extends Controller
         }
         $elastic = new Elastic();
         $indexName = IndexConstant::TUTUAPP_IOS_ZH;
-        $tempEntityId =$entityId+$size;
 
-        while($tempEntityId<=$maxEntityId+$size){
-            echo $tempEntityId."\n";
+        $startEntityId = $entityId;
+        $endEntityId = $startEntityId+$size;
 
-            $condition = "AND a.is_show='y' AND a.is_delete='n' AND a.entity_id>={$entityId} AND a.entity_id<{$tempEntityId}";
+        while($startEntityId<=$maxEntityId){
+            echo $startEntityId."\n";
+
+            $condition = "AND a.is_show='y' AND a.is_delete='n' AND a.entity_id>={$startEntityId} AND a.entity_id<{$endEntityId}";
 
             $apps = $this->getAppIosFlatDataByEntityId($condition);
-
+            $extenData = $this->getAppIosFlatExtenDataByEntityId($startEntityId,$endEntityId);
+            $reportData = $this->getAppIosReportDataByEntityId($startEntityId,$endEntityId);
+            //var_dump($extenData);
             foreach ($apps as $index => $app) {
-                $exten = $this->getAppIosFlatExtenData($app["entity_id"]);
-                $report = $this->getAppIosReportData($app["entity_id"]);
+                $exten = $extenData[$app["entity_id"]];
+                //var_dump($exten);
+                $report = $reportData[$app["entity_id"]];
+                //var_dump($report);
                 $app = $this->getFinalAppData($app,$exten,$report);
+                //var_dump($app);
                 $apps[$index] = $app;
             }
-
             $this->batchCreateDocument($apps,$indexName,$elastic);
-            $tempEntityId+=$size;
+            $startEntityId+=$size;
+            $endEntityId+=$size;
         };
 
         return ExitCode::OK;
@@ -179,7 +186,6 @@ class BatchIndexDataController extends Controller
         }
 
         $app = $app + $exten + $report;
-
         return $app;
     }
 
@@ -319,6 +325,22 @@ class BatchIndexDataController extends Controller
         return $exten;
     }
 
+    public function getAppIosFlatExtenDataByEntityId($startEntityId,$endEntityId){
+        $data = [];
+        $sqlExten = "SELECT b.entity_id,b.apptype, b.comment_count,b.download_count,b.score_count,b.look_count,b.favorite_count,b.share_count
+                FROM app_ios_flat_exten b 
+                WHERE b.entity_id >={$startEntityId} and b.entity_id<{$endEntityId}";
+        try{
+            $extens = Yii::$app->db->createCommand($sqlExten)->queryAll();
+            foreach ($extens as $i=>$one){
+                $data[$one['entity_id']]= $one;
+            }
+        }catch (\yii\db\Exception $e){
+            return $data;
+        }
+        return $data;
+    }
+
     public function getAppIosReportData($entityId){
         $sqlReport = "SELECT c.week_download_count,c.month_download_count,c.year_download_count,c.week_view_count,c.month_view_count,c.year_view_count 
                 FROM report_app c 
@@ -331,4 +353,23 @@ class BatchIndexDataController extends Controller
 
         return $report;
     }
+
+    public function getAppIosReportDataByEntityId($startEntityId,$endEntityId){
+        $data=[];
+        $sqlReport = "SELECT c.entity_id,c.week_download_count,c.month_download_count,c.year_download_count,c.week_view_count,c.month_view_count,c.year_view_count 
+                FROM report_app c 
+                WHERE c.entity_id >={$startEntityId} and c.entity_id<{$endEntityId}";
+        try{
+            $reports = Yii::$app->db->createCommand($sqlReport)->queryAll();
+            foreach ($reports as $i=>$one){
+                $data[$one['entity_id']]= $one;
+            }
+
+        }catch (\yii\db\Exception $e){
+            return $data;
+        }
+
+        return $data;
+    }
+
 }
