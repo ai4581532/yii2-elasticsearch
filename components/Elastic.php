@@ -736,7 +736,7 @@ class Elastic {
         $index = $this->getIndexName($lang,$platform);
 
         $sourceFiled = ["entity_id","app_name","app_name_we"];
-        $queryFileds = ["app_name","app_name_we","app_name.english","app_name_we.english"];
+        $queryFileds = ["app_name^2","app_name_we^3","app_name.english^2","app_name_we.english^3"];
 
         $queryBody = $this->getQueryBody($queryString,$queryFileds);
 
@@ -795,7 +795,7 @@ class Elastic {
 
         $sourceFiled = ["entity_id"];
 
-        $queryFileds = ["app_name","app_name.english","app_name_we","app_name_we.english","app_introduction","app_introduction.english","app_current_newfunction","app_current_newfunction.english"];
+        $queryFileds = ["app_name","app_name.english","app_name_we","app_name_we.english","app_introduction","app_introduction.english"];
         $queryBody = $this->getQueryBody($key,$queryFileds);
 
         if(empty($index)){
@@ -817,7 +817,7 @@ class Elastic {
 
                 "_source"=>$sourceFiled,
 
-                "from"=>$pages["page"]-1,
+                "from"=>($pages["page"]-1)*$pages["pageCount"],
 
                 "size"=>$pages["pageCount"],
 
@@ -833,6 +833,8 @@ class Elastic {
                 "dataList" => $this->dealHitsResponse($response),
                 "pageInfo"=>[
                     "totalPage"=>ceil($response["hits"]["total"]/$pages["pageCount"]),
+                    "totalNum"=> $response["hits"]["total"],
+                    "pageCount"=> $pages["pageCount"],
                     "page"=>$pages["page"]
                 ]
             ];
