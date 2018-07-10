@@ -736,7 +736,7 @@ class Elastic {
         $index = $this->getIndexName($lang,$platform);
 
         $sourceFiled = ["entity_id","app_name","app_name_we"];
-        $queryFileds = ["app_name^2","app_name_we^3","app_name.english^2","app_name_we.english^3"];
+        $queryFileds = ["app_name^2","app_name_we","app_name.english^2","app_name_we.english"];
 
         $queryBody = $this->getQueryBody($queryString,$queryFileds);
 
