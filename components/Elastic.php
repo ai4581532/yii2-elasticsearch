@@ -14,10 +14,19 @@ use Elasticsearch\ClientBuilder;
 class Elastic {
 
     private static $client;
+    private $countryCode;
 
     public function __construct(){
         $esParam = Yii::$app->params['elastic'];
         self::$client = ClientBuilder::fromConfig($esParam);
+    }
+
+    public  function setCountryCode($countryCode){
+        $this->countryCode=$countryCode;
+    }
+
+    public  function getCountryCode(){
+        return $this->countryCode;
     }
 
     /**
@@ -34,26 +43,33 @@ class Elastic {
      * @param $platform
      * @return string
      */
-    public function getIndexName($lang, $platform){
-        switch($lang){
-            case "zh":
+    public function getIndexName($lang,$platform){
+//        switch($lang){
+//            case "zh":
+//                return IndexConstant::TUTUAPP_IOS_ZH;
+//                break;
+//            case "zh-cn":
+//                return IndexConstant::TUTUAPP_IOS_ZH;
+//                break;
+//            case "en":
+//                return IndexConstant::TUTUAPP_IOS_EN;
+//                breack;
+//            default:
+//                return IndexConstant::TUTUAPP_IOS_EN;
+//        }
+        switch($this->getCountryCode()){
+            case "CN":
                 return IndexConstant::TUTUAPP_IOS_ZH;
                 break;
-            case "zh-cn":
-                return IndexConstant::TUTUAPP_IOS_ZH;
-                break;
-            case "en":
-                return IndexConstant::TUTUAPP_IOS_ZH;
-                breack;
             default:
-                return IndexConstant::TUTUAPP_IOS_ZH;
+                return IndexConstant::TUTUAPP_IOS_EN;
         }
     }
 
     /**
      * 创建索引
      */
-    public function createIndex($index,$properties=[],$type="_doc"){
+    public function createIndex($index,$properties=[],$type="_doc",$settings=null){
         $result = ["status" => true,"message"=>"success","data"=>""];
 
         if(empty($index)){
@@ -62,17 +78,20 @@ class Elastic {
         }
 
         if(empty($properties)){
-            $result["status"] = false;
-            $result["message"] = "properties is empty";
+            $properties = IndexConstant::TUTUAPP_IOS_PROPS;
+        }
+
+        if(empty($settings)){
+            $settings =  [
+                'number_of_shards' => 1,
+                'number_of_replicas' => 4
+            ];
         }
 
         $params = [
             'index' => $index,
             'body' => [
-//                 'settings' => [
-//                     'number_of_shards' => 3,
-//                     'number_of_replicas' => 3
-//                 ],
+                'settings' => $settings,
                 'mappings' => [
                     $type => [
                         'properties' => $properties
@@ -90,7 +109,6 @@ class Elastic {
         }
 
         return $result;
-
     }
 
     /**
@@ -370,8 +388,8 @@ class Elastic {
         }
 
         if(empty($queryFileds)){
-            $queryFileds = ["app_name","app_name_we","app_introduction","app_current_newfunction",
-                "app_name.english","app_name_we.english","app_introduction.english","app_current_newfunction.english",];
+            $queryFileds = ["app_name","app_name_we","app_introduction","app_name.pinyin","app_name_we.pinyin",
+                "app_name.english","app_name_we.english","app_introduction.english"];
         }
 
         switch ($queryType){
@@ -524,6 +542,10 @@ class Elastic {
             return $result;
         }
 
+        if(empty($sourceFiled)){
+            $sourceFiled = ["entity_id"];
+        }
+
 //        if(empty($pages)){
 //            $pages["page"] = 1;
 //            $pages["pageCount"] = 10;
@@ -674,7 +696,7 @@ class Elastic {
             if(!empty($type)){
                 $queryBody = ["bool" =>
                     ["must"=>[
-                        [ 'match' => [ 'apptype' => $type=='app'?1:2 ] ]
+                        [ 'match' => [ 'app_type' => $type=='app'?1:2 ] ]
                     ]
                     ]
                 ];
@@ -736,7 +758,7 @@ class Elastic {
         $index = $this->getIndexName($lang,$platform);
 
         $sourceFiled = ["entity_id","app_name","app_name_we"];
-        $queryFileds = ["app_name^2","app_name_we","app_name.english^2","app_name_we.english"];
+        $queryFileds = ["app_name^2","app_name_we","app_name.pinyin","app_name_we.pinyin","app_name.english^2","app_name_we.english"];
 
         $queryBody = $this->getQueryBody($queryString,$queryFileds);
 
@@ -795,7 +817,8 @@ class Elastic {
 
         $sourceFiled = ["entity_id"];
 
-        $queryFileds = ["app_name","app_name.english","app_name_we","app_name_we.english","app_introduction","app_introduction.english"];
+        $queryFileds = ["app_name","app_name.english","app_name.pinyin","app_introduction^0.2","app_introduction.english^0.2"];
+
         $queryBody = $this->getQueryBody($key,$queryFileds);
 
         if(empty($index)){
@@ -809,13 +832,30 @@ class Elastic {
             $pages["pageCount"] = 10;
         }
 
+        $scoreExpress = "_score*0.7+50*doc['have_gen'].value";
+
+        $functionScore = [
+            'query'=>$queryBody,
+            'script_score'=>[
+                'script'=>[
+                    "params"=>[
+                        "main_weight"=>0.70,
+                        "gen_weight"=>50,
+                    ],
+                    "source"=>$scoreExpress
+                ]
+            ]
+        ];
+
         $params = [
             'index' => $index,
             'type' => $type,
             'body' => [
-                'query' => $queryBody,
+                'query' => [
+                    'function_score'=>$functionScore
+                ],
 
-                "_source"=>$sourceFiled,
+                //"_source"=>$sourceFiled,
 
                 "from"=>($pages["page"]-1)*$pages["pageCount"],
 
@@ -828,7 +868,7 @@ class Elastic {
         //return $params;
         try {
             $response = $this->getClient()->search($params);
-
+            //return $response;
             $result["data"]=[
                 "dataList" => $this->dealHitsResponse($response),
                 "pageInfo"=>[
@@ -839,14 +879,10 @@ class Elastic {
                 ]
             ];
 
-            //return $response;
-
         } catch (\Exception $e) {
-
+            //var_dump($e->getMessage());exit();
             $result["status"]=false;
-
             $result["message"]=json_decode($e->getMessage());
-
         }
 
         return $result;
@@ -861,7 +897,9 @@ class Elastic {
 
         $sourceFiled = ["entity_id"];
 
-        $queryFileds = ["app_name","app_name.english","app_name_we","app_name_we.english","app_introduction","app_introduction.english","app_current_newfunction","app_current_newfunction.english"];
+        $queryFileds = ["app_name","app_name.english","app_name_we","app_name_we.english","app_introduction","app_introduction.english",
+            "app_name.pinyin","app_name_we.pinyin"];
+
         $queryBody = $this->getQueryBody($appName,$queryFileds);
 
         if(empty($index)){
@@ -1102,8 +1140,27 @@ class IndexConstant {
                     'type'=> 'text',
                     'analyzer'=> 'english'
                 ],
+                'pinyin'=>[
+                    'type'=> 'text',
+                    'analyzer'=> 'pinyin'
+                ]
             ],
-            'boost'=> 8,
+            'boost'=> 10,
+            'analyzer' => 'ik_max_word'
+        ],
+        'app_name_we' => [
+            'type' => 'text',
+            'fields'=> [
+                'english'=>[
+                    'type'=> 'text',
+                    'analyzer'=> 'english'
+                ],
+                'pinyin'=>[
+                    'type'=> 'text',
+                    'analyzer'=> 'pinyin'
+                ]
+            ],
+            'boost'=> 10,
             'analyzer' => 'ik_max_word'
         ],
         'app_category_first_name' => [
@@ -1136,35 +1193,21 @@ class IndexConstant {
                 'english'=>[
                     'type'=> 'text',
                     'analyzer'=> 'english'
-                ],
+                ]
             ],
-            'boost'=> 7,
+            'boost'=> 2,
             'analyzer' => 'ik_max_word'
         ],
         'app_current_newfunction' => [
             'type' => 'text',
-            'fields'=> [
-                'english'=>[
-                    'type'=> 'text',
-                    'analyzer'=> 'english'
-                ],
-            ],
-            'boost'=> 6,
+            'boost'=> 1,
             'analyzer' => 'ik_max_word'
         ],
-        'app_name_we' => [
-            'type' => 'text',
-            'fields'=> [
-                'english'=>[
-                    'type'=> 'text',
-                    'analyzer'=> 'english'
-                ],
-            ],
-            'boost'=> 10,
-            'analyzer' => 'ik_max_word'
-        ],
-        'apptype' => [
+        'app_type' => [
             'type' => 'integer',
+        ],
+        'have_gen'=>[
+            'type'=>'integer',
         ],
         'update_date' => [
             'type' => 'date',
@@ -1174,54 +1217,44 @@ class IndexConstant {
             'type' => 'date',
             'format'=>'yyyy-MM-dd HH:mm:ss||yyyy-MM-dd||epoch_millis'
         ],
-
         'week_download_count' => [
             'type' => 'integer',
-            'boost'=> 8,
         ],
         'month_download_count' => [
             'type' => 'integer',
-            'boost'=> 5,
         ],
         'year_download_count' => [
             'type' => 'integer',
-            'boost'=> 2,
         ],
         'week_view_count' => [
             'type' => 'integer',
-            'boost'=> 8,
         ],
         'month_view_count' => [
             'type' => 'integer',
-            'boost'=> 5,
         ],
         'year_view_count' => [
             'type' => 'integer',
-            'boost'=> 2,
         ],
         'comment_count' => [
             'type' => 'integer',
-            'boost'=> 5,
         ],
         'download_count' => [
             'type' => 'integer',
-            'boost'=> 5,
         ],
         'score_count' => [
             'type' => 'integer',
-            'boost'=> 5,
         ],
         'look_count' => [
             'type' => 'integer',
-            'boost'=> 5,
         ],
         'favorite_count' => [
             'type' => 'integer',
-            'boost'=> 5,
         ],
         'share_count' => [
             'type' => 'integer',
-            'boost'=> 5,
+        ],
+        'count_score' => [
+            'type' => 'integer',
         ],
     ];
 

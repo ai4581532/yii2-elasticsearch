@@ -24,7 +24,7 @@ class ElasticController extends Controller{
     public function actionCreateindex(){
         $elastic = new Elastic();
 
-        $index = IndexConstant::TUTUAPP_IOS_ZH;
+        $index = IndexConstant::TUTUAPP_IOS_EN;
 
         $response = $elastic->createIndex($index);
 
@@ -44,7 +44,7 @@ class ElasticController extends Controller{
     public function actionGetindexmapping(){
         $elastic = new Elastic();
         
-        $index = IndexConstant::TUTUAPP_IOS_ZH;
+        $index = 'tutuapp-ios-zh';
         
         $response = $elastic->getIndexMapping($index);
         
@@ -53,8 +53,8 @@ class ElasticController extends Controller{
     
     public function actionSetindexmapping(){
         $elastic = new Elastic();
-        
-        $index = IndexConstant::TUTUAPP_IOS_ZH;
+
+        $index = 'tutuapp-ios-zh';
         
         $properties =[];
         

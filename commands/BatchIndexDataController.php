@@ -16,18 +16,21 @@ use Yii;
  * @author  charley.wang
  *
  */
-class BatchIndexDataController extends Controller
-{
-    public function actionQuickInitData($entityId,$maxEntityId=null,$size=100){
+class BatchIndexDataController extends Controller{
+
+    public function actionQuickInitData($entityId,$maxEntityId=null,$indexName='tutuapp_ios_zh_v2',$area='cn',$size=100){
         if(empty($maxEntityId)){
             $maxEntityId = $this->getMaxEntityId();
             echo $maxEntityId."\n";
         }
+
         $elastic = new Elastic();
-        $indexName = IndexConstant::TUTUAPP_IOS_ZH;
 
         $startEntityId = $entityId;
         $endEntityId = $startEntityId+$size;
+
+        //$flatDeleteData = $this->getFlatDeleteData();
+        ///$areaDeleteData = $this->getAreaDeleteData($area);
 
         while($startEntityId<=$maxEntityId){
             echo $startEntityId."\n";
@@ -37,13 +40,27 @@ class BatchIndexDataController extends Controller
             $apps = $this->getAppIosFlatDataByEntityId($condition);
             $extenData = $this->getAppIosFlatExtenDataByEntityId($startEntityId,$endEntityId);
             $reportData = $this->getAppIosReportDataByEntityId($startEntityId,$endEntityId);
-            //var_dump($extenData);
+            $genData = $this->getAppGenDataByEntityId($startEntityId,$endEntityId);
+
             foreach ($apps as $index => $app) {
-                $exten = $extenData[$app["entity_id"]];
+                $entityId =$app["entity_id"];
+//                if($flatDeleteData[$entityId]){
+//                    echo $entityId.'_flat delete'."\n";
+//                    continue;
+//                }
+
+//                if($areaDeleteData[$entityId]){
+//                    echo $entityId.'_area delete'."\n";
+//                    continue;
+//                }
+
+                $exten = $extenData[$entityId];
                 //var_dump($exten);
-                $report = $reportData[$app["entity_id"]];
+                $report = $reportData[$entityId];
                 //var_dump($report);
-                $app = $this->getFinalAppData($app,$exten,$report);
+                $gen = $genData[$entityId];
+                //var_dump($gen);
+                $app = $this->getFinalAppData($app,$exten,$report,$gen);
                 //var_dump($app);
                 $apps[$index] = $app;
             }
@@ -56,55 +73,7 @@ class BatchIndexDataController extends Controller
     }
 
     public function actionInitData($startCreateDate=null, $endCreateDate=null){
-        $condition = "AND a.is_show='y' AND a.is_delete='n'";
 
-        if(empty($startCreateDate)){
-            //开始时间为空，则获取上次的截止时间
-            $startCreateDate = $this->getStartCreateDate();
-        }
-
-        if($startCreateDate){
-            $condition.="AND a.create_date>='{$startCreateDate}' ";
-        }
-
-        //如果没有设置截止时间，则设置为当前时间
-        if(empty($endCreateDate)){
-            $endCreateDate = date("Y-m-d H-m-s");
-        }
-
-        if($endCreateDate){
-            $condition.="AND a.create_date<'{$endCreateDate}' ";
-        }
-
-        //echo $condition;return ExitCode::OK;
-        $count = $count = $this->getAppIosFlatDataCount($condition);
-        echo $count."\n";
-
-        $pageSize = 100;
-        //$pageSize = 1;
-        $totalPageNum= $count/$pageSize;
-        //$totalPageNum= 1;
-
-        for($page=1; $page<=$totalPageNum; $page++) {
-            echo $page."\n";
-            $offset = ($page - 1) * $pageSize;
-
-            $apps = $this->getAppIosFlatData($condition,$pageSize,$offset);
-
-            foreach ($apps as $index => $app) {
-                $exten = $this->getAppIosFlatExtenData($app["entity_id"]);
-                $report = $this->getAppIosReportData($app["entity_id"]);
-                $app = $this->getFinalAppData($app,$exten,$report);
-                $apps[$index] = $app;
-            }
-
-            $this->batchCreateDocument($apps);
-
-        }
-
-        $this->addCreatedInfo($count,$endCreateDate);
-
-        return ExitCode::OK;
     }
 
     public function actionUpdateData(){
@@ -141,7 +110,6 @@ class BatchIndexDataController extends Controller
         for($page=1; $page<=$totalPageNum; $page++) {
 
             $offset = ($page - 1) * $pageSize;
-
             $apps = $this->getAppIosFlatData($condition,$pageSize,$offset);
 
             foreach ($apps as $index => $app) {
@@ -163,9 +131,9 @@ class BatchIndexDataController extends Controller
         return ExitCode::OK;
     }
 
-    public function getFinalAppData($app,$exten,$report){
+    public function getFinalAppData($app,$exten,$report,$gen){
         if (!is_array($exten)) {
-            $exten = ["apptype" => "0",
+            $exten = ["app_type" => "0",
                 "comment_count" => "0",
                 "download_count" => "0",
                 "score_count" => "0",
@@ -185,7 +153,23 @@ class BatchIndexDataController extends Controller
             ];
         }
 
-        $app = $app + $exten + $report;
+        $haveGen = ['have_gen'=>1];
+        if(empty($gen)){
+            $haveGen = ['have_gen'=>0];
+        }
+
+        $count_score = 60*$haveGen['have_gen']+
+            0.030*(0.001*$report['week_download_count']+0.001*$report['week_view_count']+0.001*$report['month_download_count']+0.001*$report['month_view_count']+
+                0.0001*($exten['comment_count']+$exten['download_count']+$exten['score_count']+$exten['favorite_count']+$exten['share_count']));
+
+        if($count_score<0.0001){
+            $count_score=0;
+        }
+
+        $scoreArr = ['count_score'=>$count_score];
+
+        $app = $app + $exten + $report + $haveGen + $scoreArr;
+
         return $app;
     }
 
@@ -314,7 +298,7 @@ class BatchIndexDataController extends Controller
     }
 
     public function getAppIosFlatExtenData($entityId){
-        $sqlExten = "SELECT b.apptype, b.comment_count,b.download_count,b.score_count,b.look_count,b.favorite_count,b.share_count
+        $sqlExten = "SELECT b.apptype as app_type, b.comment_count,b.download_count,b.score_count,b.look_count,b.favorite_count,b.share_count
                 FROM app_ios_flat_exten b 
                 WHERE b.entity_id = :entity_id  limit 1";
         try{
@@ -327,7 +311,7 @@ class BatchIndexDataController extends Controller
 
     public function getAppIosFlatExtenDataByEntityId($startEntityId,$endEntityId){
         $data = [];
-        $sqlExten = "SELECT b.entity_id,b.apptype, b.comment_count,b.download_count,b.score_count,b.look_count,b.favorite_count,b.share_count
+        $sqlExten = "SELECT b.entity_id,b.apptype as app_type, b.comment_count,b.download_count,b.score_count,b.look_count,b.favorite_count,b.share_count
                 FROM app_ios_flat_exten b 
                 WHERE b.entity_id >={$startEntityId} and b.entity_id<{$endEntityId}";
         try{
@@ -370,6 +354,76 @@ class BatchIndexDataController extends Controller
         }
 
         return $data;
+    }
+
+    public  function getAppGenDataByEntityId($startEntityId,$endEntityId){
+        $data=[];
+        $sql = "SELECT entity_id,app_name,is_vip FROM app_ios_flat_gen WHERE entity_id >={$startEntityId} and entity_id<{$endEntityId}";
+        try{
+            $rows = Yii::$app->db->createCommand($sql)->queryAll();
+            foreach ($rows as $i=>$one){
+                $data[$one['entity_id']]= $one;
+            }
+
+        }catch (\yii\db\Exception $e){
+            return $data;
+        }
+
+        return $data;
+    }
+
+    public function getFlatDeleteData(){
+        $data=[];
+        $sql = "SELECT entity_id FROM app_ios_flat_delete WHERE 1=1";
+        try{
+            $rows = Yii::$app->db->createCommand($sql)->queryAll();
+            foreach ($rows as $i=>$one){
+                $data[$one['entity_id']]= $one;
+            }
+
+        }catch (\yii\db\Exception $e){
+            return $data;
+        }
+
+        return $data;
+    }
+
+    public function getAreaDeleteData($area='cn'){
+        $data=[];
+        $sql = "SELECT entity_id,solr_area_code FROM app_ios_solr_delete WHERE 1=1 AND solr_area_code IN ('{$area}','all')";
+        //echo $sql."\n";
+        try{
+            $rows = Yii::$app->db->createCommand($sql)->queryAll();
+            foreach ($rows as $i=>$one){
+                $data[$one['entity_id']]= $one;
+            }
+
+        }catch (\yii\db\Exception $e){
+            return $data;
+        }
+
+        return $data;
+    }
+
+    public function actionDeleteAreaIndex($index='tutuapp_ios_zh',$area='cn'){
+        $elastic = new Elastic();
+        $deleteData = $this->getAreaDeleteData($area);
+
+        foreach ($deleteData as $i=>$item){
+            $res = $elastic->deleteDocument($index,$item['entity_id']);
+            echo json_encode($res)."\n";
+        }
+
+    }
+
+    public function actionDeleteFlatIndex($index){
+        $elastic = new Elastic();
+        $deleteData = $this->getFlatDeleteData();
+
+        foreach ($deleteData as $i=>$item){
+            $res = $elastic->deleteDocument($index,$item['entity_id']);
+            echo json_encode($res)."\n";
+        }
     }
 
 }
