@@ -166,6 +166,8 @@ class BatchIndexDataController extends Controller{
             $count_score=0;
         }
 
+        $count_score = round($count_score,5);
+
         $scoreArr = ['count_score'=>$count_score];
 
         $app = $app + $exten + $report + $haveGen + $scoreArr;
