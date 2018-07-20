@@ -2,6 +2,8 @@
 
 namespace app\commands;
 
+use app\models\AppIosFlatDelete;
+use app\models\AppIosSolrDelete;
 use yii\console\Controller;
 use yii\console\ExitCode;
 use app\components\Elastic;
@@ -18,7 +20,7 @@ use Yii;
  */
 class BatchIndexDataController extends Controller{
 
-    public function actionQuickInitData($entityId,$maxEntityId=null,$indexName='tutuapp_ios_zh_v2',$area='cn',$size=100){
+    public function actionQuickInitData($entityId,$maxEntityId=null,$indexName='tutuapp_ios_en_v2',$area='us',$size=100){
         if(empty($maxEntityId)){
             $maxEntityId = $this->getMaxEntityId();
             echo $maxEntityId."\n";
@@ -158,12 +160,15 @@ class BatchIndexDataController extends Controller{
             $haveGen = ['have_gen'=>0];
         }
 
-        $count_score = 60*$haveGen['have_gen']+
+        $count_score = 50*$haveGen['have_gen']+
             0.030*(0.001*$report['week_download_count']+0.001*$report['week_view_count']+0.001*$report['month_download_count']+0.001*$report['month_view_count']+
                 0.0001*($exten['comment_count']+$exten['download_count']+$exten['score_count']+$exten['favorite_count']+$exten['share_count']));
 
         if($count_score<0.0001){
             $count_score=0;
+        }
+        if($count_score>100){
+            $count_score=100;
         }
 
         $count_score = round($count_score,5);
@@ -246,7 +251,7 @@ class BatchIndexDataController extends Controller{
     public function getAppMaxUpdateDate(){
         $sqlMaxUpdate = "SELECT MAX(update_date) FROM app_ios_flat a WHERE 1=1 AND a.is_show='y' AND a.is_delete='n'";
         try{
-            $maxUpdate = Yii::$app->db->createCommand($sqlMaxUpdate)->queryScalar();
+            $maxUpdate = Yii::$app->db2->createCommand($sqlMaxUpdate)->queryScalar();
         }catch (\yii\db\Exception $e){
             return 0;
         }
@@ -256,7 +261,7 @@ class BatchIndexDataController extends Controller{
     public function getAppIosFlatDataCount($condition){
         $sqlCount = "SELECT  count(id)  FROM app_ios_flat a  WHERE 1=1 ".$condition;
         try{
-            $count = Yii::$app->db->createCommand($sqlCount)->queryScalar();
+            $count = Yii::$app->db2->createCommand($sqlCount)->queryScalar();
         }catch (\yii\db\Exception $e){
             return 0;
         }
@@ -266,7 +271,7 @@ class BatchIndexDataController extends Controller{
     public function getMaxEntityId(){
         $sql = "SELECT  max(entity_id)  FROM app_ios_flat a  WHERE 1=1 ";
         try{
-            $maxId = Yii::$app->db->createCommand($sql)->queryScalar();
+            $maxId = Yii::$app->db2->createCommand($sql)->queryScalar();
         }catch (\yii\db\Exception $e){
             return 0;
         }
@@ -279,7 +284,7 @@ class BatchIndexDataController extends Controller{
                 FROM app_ios_flat a 
                 WHERE 1=1 ".$condition;
         try{
-            $apps = Yii::$app->db->createCommand($sql)->queryAll();
+            $apps = Yii::$app->db2->createCommand($sql)->queryAll();
         }catch (\yii\db\Exception $e){
             return [];
         }
@@ -292,7 +297,7 @@ class BatchIndexDataController extends Controller{
                 FROM app_ios_flat a 
                 WHERE 1=1 ".$condition." order by a.id limit :limit offset :offset  ";
         try{
-            $apps = Yii::$app->db->createCommand($sql)->bindParam(":limit", $pageSize)->bindParam(":offset", $offset)->queryAll();
+            $apps = Yii::$app->db2->createCommand($sql)->bindParam(":limit", $pageSize)->bindParam(":offset", $offset)->queryAll();
         }catch (\yii\db\Exception $e){
             return [];
         }
@@ -304,7 +309,7 @@ class BatchIndexDataController extends Controller{
                 FROM app_ios_flat_exten b 
                 WHERE b.entity_id = :entity_id  limit 1";
         try{
-            $exten = Yii::$app->db->createCommand($sqlExten)->bindParam(":entity_id", $entityId)->queryOne();
+            $exten = Yii::$app->db2->createCommand($sqlExten)->bindParam(":entity_id", $entityId)->queryOne();
         }catch (\yii\db\Exception $e){
             return [];
         }
@@ -317,7 +322,7 @@ class BatchIndexDataController extends Controller{
                 FROM app_ios_flat_exten b 
                 WHERE b.entity_id >={$startEntityId} and b.entity_id<{$endEntityId}";
         try{
-            $extens = Yii::$app->db->createCommand($sqlExten)->queryAll();
+            $extens = Yii::$app->db2->createCommand($sqlExten)->queryAll();
             foreach ($extens as $i=>$one){
                 $data[$one['entity_id']]= $one;
             }
@@ -332,7 +337,7 @@ class BatchIndexDataController extends Controller{
                 FROM report_app c 
                 WHERE c.entity_id = :entity_id limit 1";
         try{
-            $report = Yii::$app->db->createCommand($sqlReport)->bindParam(":entity_id", $entityId)->queryOne();
+            $report = Yii::$app->db2->createCommand($sqlReport)->bindParam(":entity_id", $entityId)->queryOne();
         }catch (\yii\db\Exception $e){
             return [];
         }
@@ -346,7 +351,7 @@ class BatchIndexDataController extends Controller{
                 FROM report_app c 
                 WHERE c.entity_id >={$startEntityId} and c.entity_id<{$endEntityId}";
         try{
-            $reports = Yii::$app->db->createCommand($sqlReport)->queryAll();
+            $reports = Yii::$app->db2->createCommand($sqlReport)->queryAll();
             foreach ($reports as $i=>$one){
                 $data[$one['entity_id']]= $one;
             }
@@ -362,7 +367,7 @@ class BatchIndexDataController extends Controller{
         $data=[];
         $sql = "SELECT entity_id,app_name,is_vip FROM app_ios_flat_gen WHERE entity_id >={$startEntityId} and entity_id<{$endEntityId}";
         try{
-            $rows = Yii::$app->db->createCommand($sql)->queryAll();
+            $rows = Yii::$app->db2->createCommand($sql)->queryAll();
             foreach ($rows as $i=>$one){
                 $data[$one['entity_id']]= $one;
             }
@@ -378,7 +383,7 @@ class BatchIndexDataController extends Controller{
         $data=[];
         $sql = "SELECT entity_id FROM app_ios_flat_delete WHERE 1=1";
         try{
-            $rows = Yii::$app->db->createCommand($sql)->queryAll();
+            $rows = Yii::$app->db2->createCommand($sql)->queryAll();
             foreach ($rows as $i=>$one){
                 $data[$one['entity_id']]= $one;
             }
@@ -395,7 +400,7 @@ class BatchIndexDataController extends Controller{
         $sql = "SELECT entity_id,solr_area_code FROM app_ios_solr_delete WHERE 1=1 AND solr_area_code IN ('{$area}','all')";
         //echo $sql."\n";
         try{
-            $rows = Yii::$app->db->createCommand($sql)->queryAll();
+            $rows = Yii::$app->db2->createCommand($sql)->queryAll();
             foreach ($rows as $i=>$one){
                 $data[$one['entity_id']]= $one;
             }
@@ -407,25 +412,56 @@ class BatchIndexDataController extends Controller{
         return $data;
     }
 
-    public function actionDeleteAreaIndex($index='tutuapp_ios_zh',$area='cn'){
+    public function actionDeleteAreaIndex(){
         $elastic = new Elastic();
-        $deleteData = $this->getAreaDeleteData($area);
 
-        foreach ($deleteData as $i=>$item){
-            $res = $elastic->deleteDocument($index,$item['entity_id']);
-            echo json_encode($res)."\n";
+        $list = AppIosSolrDelete::findAll(['is_syn_es'=>0]);
+
+        foreach ($list as $i=>$item){
+            $area = $item->solr_area_code;
+            $flag = false;
+            if($area=='all'){
+                $res1 = $elastic->deleteDocument(IndexConstant::TUTUAPP_IOS_ZH,$item['entity_id']);
+                $res2 = $elastic->deleteDocument(IndexConstant::TUTUAPP_IOS_EN,$item['entity_id']);
+                $flag = $res1['status']&&$res2['status'];
+                $flag = $res1['status'];
+            }
+
+            if($area=='cn'){
+                $res = $elastic->deleteDocument(IndexConstant::TUTUAPP_IOS_ZH,$item['entity_id']);
+                $flag = $res['status'];
+            }
+
+            if($area=='us'){
+                $res = $elastic->deleteDocument(IndexConstant::TUTUAPP_IOS_EN,$item['entity_id']);
+                $flag = $res['status'];
+            }
+
+            if($flag){
+                $item->is_syn_es=1;
+                $item->save();
+            }
         }
 
+
+        return ExitCode::OK;
     }
 
-    public function actionDeleteFlatIndex($index){
+    public function actionDeleteFlatIndex(){
         $elastic = new Elastic();
-        $deleteData = $this->getFlatDeleteData();
+        $deleteData = AppIosFlatDelete::findAll(['is_syn_es'=>0]);
 
         foreach ($deleteData as $i=>$item){
-            $res = $elastic->deleteDocument($index,$item['entity_id']);
-            echo json_encode($res)."\n";
+            $res1 = $elastic->deleteDocument(IndexConstant::TUTUAPP_IOS_ZH,$item['entity_id']);
+            $res2 = $elastic->deleteDocument(IndexConstant::TUTUAPP_IOS_EN,$item['entity_id']);
+            $flag = $res1['status']&&$res2['status'];
+            if($flag){
+                $item->is_syn_es=1;
+                $item->save();
+            }
         }
+
+        return ExitCode::OK;
     }
 
 }

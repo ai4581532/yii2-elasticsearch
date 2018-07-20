@@ -758,7 +758,7 @@ class Elastic {
         $index = $this->getIndexName($lang,$platform);
 
         $sourceFiled = ["entity_id","app_name","app_name_we"];
-        $queryFileds = ["app_name^2","app_name_we","app_name.pinyin","app_name_we.pinyin","app_name.english^2","app_name_we.english"];
+        $queryFileds = ["app_name","app_name_we","app_name.pinyin","app_name_we.pinyin","app_name.english","app_name_we.english"];
 
         $queryBody = $this->getQueryBody($queryString,$queryFileds);
 
@@ -817,7 +817,15 @@ class Elastic {
 
         $sourceFiled = ["entity_id"];
 
-        $queryFileds = ["app_name","app_name.english","app_name.pinyin","app_introduction^0.2","app_introduction.english^0.2"];
+        $queryFileds = ["app_name","app_name.english","app_name_we","app_name_we.english","app_introduction","app_introduction.english"];
+        $scoreExpress = "_score*params.main_weight_en+Math.min(80,doc['count_score'].value)";
+
+        if($index=='tutuapp_ios_zh_v2'){
+            $queryFileds = ["app_name","app_name.english","app_name.pinyin",
+                "app_name_we","app_name_we.english","app_name_we.pinyin",
+                "app_introduction","app_introduction.english"];
+            $scoreExpress = "_score*params.main_weight+Math.min(100,doc['count_score'].value)";
+        }
 
         $queryBody = $this->getQueryBody($key,$queryFileds);
 
@@ -832,15 +840,13 @@ class Elastic {
             $pages["pageCount"] = 10;
         }
 
-        $scoreExpress = "_score*0.7+50*doc['have_gen'].value";
-
         $functionScore = [
             'query'=>$queryBody,
             'script_score'=>[
                 'script'=>[
                     "params"=>[
-                        "main_weight"=>0.70,
-                        "gen_weight"=>50,
+                        "main_weight"=>0.8,
+                        "main_weight_en"=>0.8
                     ],
                     "source"=>$scoreExpress
                 ]
@@ -855,7 +861,7 @@ class Elastic {
                     'function_score'=>$functionScore
                 ],
 
-                //"_source"=>$sourceFiled,
+                "_source"=>$sourceFiled,
 
                 "from"=>($pages["page"]-1)*$pages["pageCount"],
 
@@ -1110,9 +1116,9 @@ class Elastic {
 
 class IndexConstant {
 
-    const TUTUAPP_IOS_ZH = "tutuapp_ios_zh";
+    const TUTUAPP_IOS_ZH = "tutuapp_ios_zh_v2";
     const TUTUAPP_IOS_ZH_TW = "tutuapp_ios_zh_tw";
-    const TUTUAPP_IOS_EN = "tutuapp_ios_en";
+    const TUTUAPP_IOS_EN = "tutuapp_ios_en_v2";
     const TUTUAPP_IOS_KO = "tutuapp_ios_ko";
     const TUTUAPP_IOS_AR = "tutuapp_ios_ar";
     const TUTUAPP_IOS_JA = "tutuapp_ios_ja";
@@ -1195,7 +1201,7 @@ class IndexConstant {
                     'analyzer'=> 'english'
                 ]
             ],
-            'boost'=> 2,
+            'boost'=> 1,
             'analyzer' => 'ik_max_word'
         ],
         'app_current_newfunction' => [
